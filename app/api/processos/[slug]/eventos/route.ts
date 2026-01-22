@@ -1,9 +1,9 @@
-﻿// app/api/processos/[slug]/route.ts
+﻿// app/api/processos/[slug]/eventos/route.ts
 
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import db from "../db";
+import db from "../../../processos/db";
 
 export async function GET(
     _req: Request,
