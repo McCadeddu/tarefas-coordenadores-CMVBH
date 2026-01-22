@@ -1,4 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+﻿# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
 /node_modules
@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# banco local SQLite (NUNCA versionar)
+cmv-bh.db
+
+# pastas locais do Windows / VS Code
+.vs/
+
+# documentos internos do projeto
+Pedido de projeto/

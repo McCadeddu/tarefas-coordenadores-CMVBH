@@ -1,26 +1,71 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* ===== TOKENS CMV ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --cmv-blue: #4BBBC8;
+    --cmv-blue-dark: #2E8F99; /* opcional, para hover */
+    --cmv-yellow: #FBBF24;
+    --cmv-brown: #3A2518;
+    --cmv-beige: #FAF7F2;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ===== BASE DE LEITURA ===== */
+html, body {
+    background-color: var(--cmv-beige);
+    color: var(--cmv-brown);
+    font-size: 16px;
+    line-height: 1.6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===== TÍTULOS ===== */
+h1, h2, h3 {
+    color: var(--cmv-blue);
+    font-weight: 700;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ===== LINKS ===== */
+a {
+    color: var(--cmv-blue);
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+/* ===== TABELA ===== */
+table thead {
+    background-color: var(--cmv-blue);
+    color: white;
+}
+
+table tbody tr:hover {
+    background-color: #f3f4f6;
+}
+
+/* ===== BADGES (STATUS) ===== */
+.badge-green {
+    background-color: #DCFCE7;
+    color: #14532D;
+}
+
+.badge-yellow {
+    background-color: #FEF3C7;
+    color: #92400E;
+}
+
+.badge-orange {
+    background-color: #FFEDD5;
+    color: #9A3412;
+}
+
+.badge-blue {
+    background-color: #DBEAFE;
+    color: #1E3A8A;
+}
+
+.badge-gray {
+    background-color: #E5E7EB;
+    color: #374151;
 }
