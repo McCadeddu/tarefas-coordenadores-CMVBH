@@ -16,7 +16,7 @@
     "better-sqlite3": "^12.6.2",
     "exceljs": "^4.4.0",
     "jose": "^6.2.2",
-    "next": "15.1.6",
+    "next": "^15.1.11",
     "nodemailer": "^8.0.3",
     "pdfkit": "^0.17.2",
     "prisma": "^6.17.1",
