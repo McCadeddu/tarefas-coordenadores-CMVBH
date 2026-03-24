@@ -6,15 +6,33 @@ import { NextResponse } from "next/server";
 import db from "../../db";
 import PDFDocument from "pdfkit";
 
+// Defina um tipo para os processos retornados do banco de dados
+type ProcessoPDF = {
+    nome: string;
+    ambito: string;
+    equipe: string | null;
+    coord_atual: string | null;
+    coord_futuro: string | null;
+    etapa: string;
+    status: string;
+    data_inicio: string;
+    data_prevista_fim: string | null;
+};
+
 export async function GET() {
     try {
         const processos = db
-            .prepare(
-                `SELECT nome, ambito, coord_atual, etapa, status
-         FROM processos
-         ORDER BY nome`
-            )
-            .all();
+            .prepare(`
+      SELECT
+        nome,
+        ambito,
+        coord_atual,
+        etapa,
+        status
+      FROM processos
+      ORDER BY nome
+    `)
+            .all() as ProcessoPDF[];
 
         const doc = new PDFDocument({ margin: 40 });
         const buffers: Buffer[] = [];
@@ -30,7 +48,7 @@ export async function GET() {
 
         doc.moveDown();
 
-        processos.forEach((p: any) => {
+        processos.forEach((p) => {
             doc
                 .fontSize(12)
                 .fillColor("#000000")

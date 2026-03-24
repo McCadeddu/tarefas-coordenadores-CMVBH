@@ -1,25 +1,15 @@
-﻿// app/api/processos/[slug]/eventos/route.ts
-
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import db from "../../../processos/db";
+import { getProcessosRepository } from "@/lib/server/processos/repository";
 
 export async function GET(
     _req: Request,
-    { params }: { params: { slug: string } }
+    { params }: { params: Promise<{ slug: string }> }
 ) {
-    const processo = db
-        .prepare(
-            `SELECT slug, nome, ambito, equipe, coord_atual, coord_futuro, etapa, status, observacoes
-       FROM processos
-       WHERE slug = ?`
-        )
-        .get(params.slug);
+    const { slug } = await params;
+    const repository = await getProcessosRepository();
+    const eventos = await repository.listEventos(slug);
 
-    if (!processo) {
-        return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-    }
-
-    return NextResponse.json(processo);
+    return NextResponse.json(eventos);
 }

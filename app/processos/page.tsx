@@ -4,15 +4,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import NavTopo from "../components/NavTopo";
 
 type Processo = {
     id: number;
     slug: string;
     nome: string;
     ambito: string;
-    equipe: string;
-    coord_atual: string;
-    coord_futuro: string;
+    equipe: string | null;
+    coord_atual: string | null;
+    coord_futuro: string | null;
     etapa: string;
     etapa_desde: string;
     status: string;
@@ -30,8 +31,12 @@ function mesesDesde(data: string) {
 }
 
 function formatarMesAno(data?: string | null) {
-    if (!data) return "—";
+    if (!data || data === "") return "—";
+
     const d = new Date(data);
+
+    if (isNaN(d.getTime())) return "—";
+
     return d.toLocaleDateString("pt-BR", {
         month: "short",
         year: "numeric",
@@ -41,6 +46,8 @@ function formatarMesAno(data?: string | null) {
 export default function ProcessosPage() {
     const [processos, setProcessos] = useState<Processo[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filtroStatus, setFiltroStatus] = useState<string>("Todos");
+    const [busca, setBusca] = useState("");
 
     useEffect(() => {
         async function carregar() {
@@ -64,11 +71,11 @@ export default function ProcessosPage() {
             Atenção: "bg-yellow-100 text-yellow-800",
             Transição: "bg-orange-100 text-orange-800",
             Planejado: "bg-gray-100 text-gray-700",
-            Concluído: "bg-blue-100 text-blue-800",
+            Concluído: "bg-indigo-100 text-indigo-800",
         };
 
         return (
-            <span className={`px-2 py-1 rounded text-xs font-medium ${map[status]}`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${map[status]}`}>
                 {status}
             </span>
         );
@@ -82,8 +89,23 @@ export default function ProcessosPage() {
         );
     }
 
+    // Aplicar filtros de status e busca antes de renderizar a tabela (otimização para grandes volumes de dados)
+    const processosFiltrados = processos.filter((p) => {
+        const matchStatus =
+            filtroStatus === "Todos" || p.status === filtroStatus;
+
+        const matchBusca =
+            p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+            p.ambito.toLowerCase().includes(busca.toLowerCase());
+
+        return matchStatus && matchBusca;
+    });
+
     return (
         <main className="min-h-screen p-6 bg-[var(--cmv-beige)] text-[var(--cmv-brown)]">
+
+            <NavTopo titulo="Processos" />
+
             {/* Cabeçalho */}
             <header className="mb-6">
                 <h1 className="text-2xl font-bold text-[var(--cmv-blue)]">
@@ -93,11 +115,69 @@ export default function ProcessosPage() {
                     Visão completa em formato de planilha única
                 </p>
             </header>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+
+                {["Ativo", "Atenção", "Transição", "Planejado", "Concluído"].map((status) => {
+                    const total = processos.filter(p => p.status === status).length;
+
+                    return (
+                        <div
+                            key={status}
+                            onClick={() => setFiltroStatus(status)}
+                            className="cursor-pointer bg-white rounded shadow p-4 text-center hover:scale-105 transition"
+                        >
+                            <div className="text-sm text-gray-500">{status}</div>
+                            <div className="text-xl font-bold text-[var(--cmv-blue)]">
+                                {total}
+                            </div>
+                        </div>
+                    );
+                })}
+
+            </div>
+            <div className="flex flex-col md:flex-row gap-3 mb-4">
+
+                {/* Busca */}
+                <input
+                    type="text"
+                    placeholder="Buscar processo..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="border rounded px-3 py-2 w-full md:w-1/3"
+                />
+
+                {/* Status */}
+                <select
+                    value={filtroStatus}
+                    onChange={(e) => setFiltroStatus(e.target.value)}
+                    className="border rounded px-3 py-2"
+                >
+                    <option value="Todos">Todos</option>
+                    <option value="Ativo">Ativo</option>
+                    <option value="Atenção">Atenção</option>
+                    <option value="Transição">Transição</option>
+                    <option value="Planejado">Planejado</option>
+                    <option value="Concluído">Concluído</option>
+                </select>
+
+                {/* Reset */}
+                <button
+                    onClick={() => {
+                        setFiltroStatus("Todos");
+                        setBusca("");
+                    }}
+                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                >
+                    Limpar
+                </button>
+
+            </div>
 
             {/* Tabela */}
             <div className="overflow-x-auto bg-white rounded shadow">
-                <table className="w-full border-collapse text-sm">
-                    <thead className="bg-[var(--cmv-blue)] text-white">
+                <table className="w-full border-collapse text-sm"
+                    style={{ tableLayout: "fixed" }}>
+                    <thead className="bg-[var(--cmv-blue)] text-white sticky top-0 z-10">
                         <tr>
                             <th className="p-3 text-left">Processo</th>
                             <th className="p-3 text-left">Âmbito</th>
@@ -113,23 +193,26 @@ export default function ProcessosPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {processos.length === 0 ? (
+                        {processosFiltrados.length === 0 ? (
                             <tr>
                                 <td colSpan={11} className="p-4 text-center">
                                     Nenhum processo cadastrado.
                                 </td>
                             </tr>
                         ) : (
-                            processos.map((p) => (
-                                <tr key={p.id} className="border-t hover:bg-gray-50">
-                                    <td className="p-3 font-semibold text-[var(--cmv-blue)]">
-                                        <Link href={`/processos/${p.slug}`} className="underline">
-                                            {p.nome}
-                                        </Link>
-                                    </td>
+                                processosFiltrados.map((p) => (
+                                <tr
+                                    key={p.id}
+                                    className={`border-t cursor-pointer hover:bg-gray-50 
+                                    ${mesesDesde(p.etapa_desde) >= 6 ? "bg-red-50" : ""
+                                    }`}
+                                    onClick={() => window.location.href = `/processos/${p.slug}`}
+                                >
+                                    <td className="p-3 font-semibold text-[var(--cmv-blue)] text-base">
+                                        <span className="underline">{p.nome}</span>                                    </td>
                                     <td className="p-3">{p.ambito}</td>
-                                    <td className="p-3 text-gray-700">{p.equipe}</td>
-                                    <td className="p-3">{p.coord_atual}</td>
+                                    <td className="p-3 text-gray-700">{p.equipe || "—"}</td>
+                                    <td className="p-3">{p.coord_atual || "—"}</td>
                                     <td className="p-3 italic text-gray-600">
                                         {p.coord_futuro || "—"}
                                     </td>
@@ -138,9 +221,14 @@ export default function ProcessosPage() {
                                         {formatarMesAno(p.etapa_desde)}
                                     </td>
                                     <td className="p-3">
-                                        {mesesDesde(p.etapa_desde) === 0
-                                            ? "recente"
-                                            : `${mesesDesde(p.etapa_desde)} meses`}
+                                        {(() => {
+                                            const meses = mesesDesde(p.etapa_desde);
+
+                                            if (meses <= 0) return "🟢 recente";
+                                            if (meses <= 2) return `${meses} meses`;
+                                            if (meses <= 5) return `🟡 ${meses} meses`;
+                                            return `🔴 ${meses} meses`;
+                                        })()}
                                     </td>
                                     <td className="p-3">{statusBadge(p.status)}</td>
                                     <td className="p-3">

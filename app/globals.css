@@ -14,9 +14,13 @@
 /* ===== BASE DE LEITURA ===== */
 html, body {
     background-color: var(--cmv-beige);
-    color: var(--cmv-brown);
     font-size: 16px;
     line-height: 1.6;
+}
+
+/* ===== */
+body {
+    color: var(--cmv-brown);
 }
 
 /* ===== TÍTULOS ===== */
@@ -43,6 +47,37 @@ table thead {
 table tbody tr:hover {
     background-color: #f3f4f6;
 }
+
+.btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--cmv-blue);
+    color: white !important;
+}
+
+    .btn-primary:hover {
+        background-color: var(--cmv-blue-dark);
+    }
+
+.btn-secondary {
+    background-color: white;
+    color: var(--cmv-blue);
+    border: 2px solid var(--cmv-blue);
+}
+
+    .btn-secondary:hover {
+        background-color: var(--cmv-blue);
+        color: white !important;
+    }
 
 /* ===== BADGES (STATUS) ===== */
 .badge-green {

@@ -3,10 +3,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
+import NavTopo from "../../components/NavTopo";
+import { useRouter } from "next/navigation";
+import DiscoProcesso from "../../components/DiscoProcesso";
 
-type ProcessoForm = {
+type Objetivo = {
+    id: number;
+    ordem: number;
+    titulo: string;
+    data_inicio: string | null;
+    data_fim_prevista: string | null;
+    status: string | null;
+};
+
+type Processo = {
     slug: string;
     nome: string;
     ambito: string;
@@ -15,6 +27,13 @@ type ProcessoForm = {
     coord_futuro: string | null;
     etapa: string;
     status: string;
+    data_inicio: string;
+    data_prevista_fim: string | null;
+
+    objetivo_geral: string | null;
+    objetivo_inicio: string | null;
+    objetivo_fim_previsto: string | null;
+
     observacoes: string | null;
 };
 
@@ -45,134 +64,223 @@ function dataHumana(data: string) {
     });
 }
 
-export default function EditarProcessoPage() {
-    const { slug } = useParams<{ slug: string }>();
+export default function ProcessoPage() {
+    const params = useParams();
+    const slug = params.slug as string;
     const router = useRouter();
-
-    const [form, setForm] = useState<ProcessoForm | null>(null);
+    const [processo, setProcesso] = useState<Processo | null>(null);
     const [eventos, setEventos] = useState<Evento[]>([]);
+    const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
+    const [mostrarDetalhes, setMostrarDetalhes] = useState(false);
+    const [mostrarModal, setMostrarModal] = useState(false);
 
+    // Carrega os dados do processo, eventos e objetivos ao montar a página
     useEffect(() => {
         async function carregar() {
             const res = await fetch(`/api/processos/${slug}`);
             const data = await res.json();
-            setForm(data);
+            setProcesso(data);
 
             const resEventos = await fetch(`/api/processos/${slug}/eventos`);
-            const dadosEventos = await resEventos.json();
-            setEventos(dadosEventos);
+            setEventos(await resEventos.json());
+
+            const resObjetivos = await fetch(`/api/processos/${slug}/objetivos`);
+            setObjetivos(await resObjetivos.json());
         }
         carregar();
     }, [slug]);
 
-    function handleChange(
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) {
-        if (!form) return;
-        setForm({ ...form, [e.target.name]: e.target.value });
-    }
+    if (!processo) return <p className="p-6">Carregando…</p>;
 
-    async function salvar(e: React.FormEvent) {
-        e.preventDefault();
-        await fetch("/api/processos", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(form),
+    // Função para excluir o processo, com confirmação do usuário e redirecionamento após exclusão
+    async function excluirProcesso() {
+
+        const res = await fetch(`/api/processos/${slug}`, {
+            method: "DELETE",
         });
+
+        if (!res.ok) {
+            alert("Erro ao excluir processo");
+            return;
+        }
+
         router.push("/processos");
     }
+    function statusBadge(status: string) {
+        const map: Record<string, string> = {
+            Ativo: "badge-green",
+            Atenção: "badge-yellow",
+            Transição: "badge-orange",
+            Planejado: "badge-gray",
+            Concluído: "badge-blue",
+        };
 
-    if (!form) return <p className="p-6">Carregando…</p>;
+        return (
+            <span className={`px-2 py-1 rounded text-xs font-medium ${map[status]}`}>
+                {status}
+            </span>
+        );
+    }
 
     return (
-        <main className="min-h-screen p-6">
-            <Link href="/processos" className="underline">
-                ← Voltar
-            </Link>
+        <>
+            {mostrarModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-            <h1 className="text-2xl font-bold my-4">Editar Processo</h1>
+                    <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
 
-            <form onSubmit={salvar} className="space-y-5 max-w-xl">
-                <label className="block">
-                    <span className="text-sm font-medium">Nome do processo</span>
-                    <input name="nome" value={form.nome} onChange={handleChange}
-                        className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                        <h2 className="text-lg font-semibold mb-3">
+                            Confirmar exclusão
+                        </h2>
 
-                <label className="block">
-                    <span className="text-sm font-medium">Âmbito</span>
-                    <input name="ambito" value={form.ambito} onChange={handleChange}
-                        className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                        <p className="text-sm text-gray-600 mb-6">
+                            Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.
+                        </p>
 
-                <label className="block">
-                    <span className="text-sm font-medium">Coordenação atual</span>
-                    <input name="coord_atual" value={form.coord_atual || ""} onChange={handleChange}
-                        className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                        <div className="flex justify-end gap-3">
 
-                <label className="block">
-                    <span className="text-sm font-medium">Futuro coordenador</span>
-                    <input name="coord_futuro" value={form.coord_futuro || ""} onChange={handleChange}
-                        className="mt-1 w-full border rounded px-3 py-2 italic" />
-                </label>
+                            <button
+                                onClick={() => setMostrarModal(false)}
+                                className="btn btn-secondary"
+                            >
+                                Cancelar
+                            </button>
 
-                <label className="block">
-                    <span className="text-sm font-medium">Etapa</span>
-                    <input name="etapa" value={form.etapa} onChange={handleChange}
-                        className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                            <button
+                                onClick={async () => {
+                                    await excluirProcesso();
+                                    setMostrarModal(false);
+                                }}
+                                className="btn bg-red-600 text-white hover:bg-red-700"
+                            >
+                                Sim, excluir
+                            </button>
 
-                <label className="block">
-                    <span className="text-sm font-medium">Status</span>
-                    <input name="status" value={form.status} onChange={handleChange}
-                        className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                        </div>
 
-                <label className="block">
-                    <span className="text-sm font-medium">Equipe</span>
-                    <textarea name="equipe" value={form.equipe || ""} onChange={handleChange}
-                        rows={3} className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                    </div>
 
-                <label className="block">
-                    <span className="text-sm font-medium">Observações</span>
-                    <textarea name="observacoes" value={form.observacoes || ""} onChange={handleChange}
-                        rows={4} className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
+                </div>
+            )}
 
-                <button
-                    type="submit"
-                    className="bg-[var(--cmv-blue)] text-white px-5 py-2 rounded hover:bg-[var(--cmv-blue-dark)]"
-                >
-                    Salvar alterações
-                </button>
-            </form>
+            <main className="min-h-screen p-6 bg-[var(--cmv-beige)] text-[var(--cmv-brown)]">
 
-            {/* LINHA DO TEMPO */}
-            <section className="mt-10 max-w-xl">
-                <h2 className="text-lg font-semibold mb-4">
-                    🕒 Linha do tempo
-                </h2>
+                <NavTopo titulo={processo.nome} />
 
-                {eventos.length === 0 ? (
-                    <p className="text-sm text-gray-600">
-                        Nenhuma mudança registrada ainda.
-                    </p>
-                ) : (
-                    <ul className="space-y-3 border-l-2 border-gray-300 pl-4">
-                        {eventos.map((e, i) => (
-                            <li key={i} className="relative">
-                                <span className="absolute -left-[9px] top-1 w-3 h-3 bg-[var(--cmv-blue)] rounded-full" />
-                                <p className="text-sm">{textoEvento(e)}</p>
-                                <p className="text-xs text-gray-500">
-                                    {dataHumana(e.criado_em)}
-                                </p>
-                            </li>
-                        ))}
+                <header className="sticky top-0 z-10 bg-[var(--cmv-beige)] pb-4 mb-6 border-b">
+
+                    <div className="flex items-center justify-between gap-4">
+
+                        <h1 className="text-2xl font-bold text-[var(--cmv-blue)]">
+                            {processo.nome}
+                        </h1>
+
+                        <div className="flex gap-3">
+
+                            <Link
+                                href={`/processos/${processo.slug}/editar`}
+                                className="btn btn-primary"
+                            >
+                                ✏️ Editar
+                            </Link>
+
+                            <button
+                                onClick={() => setMostrarModal(true)}
+                                className="btn bg-red-600 text-white hover:bg-red-700"
+                            >
+                                🗑️ Excluir
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </header>
+
+                {/* INFO GERAL */}
+                <section className="bg-white p-5 rounded-xl shadow mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div><strong>Âmbito:</strong> {processo.ambito}</div>
+                    <div><strong>Etapa:</strong> {processo.etapa}</div>
+                    <div><strong>Coordenação:</strong> {processo.coord_atual || "—"}</div>
+                    <div><strong>Futuro:</strong> {processo.coord_futuro || "—"}</div>
+                    <div><strong>Equipe:</strong> {processo.equipe || "—"}</div>
+                    <div><strong>Status:</strong> {statusBadge(processo.status)}</div>
+                </section>
+
+                {/* OBJETIVO GERAL */}
+                <section className="bg-white p-4 rounded shadow mb-6">
+                    <h2 className="font-semibold mb-2">🎯 Objetivo Geral</h2>
+                    <p>{processo.objetivo_geral || "—"}</p>
+                </section>
+
+                {/* OBJETIVOS */}
+                <section className="bg-white p-4 rounded shadow mb-6">
+                    <p><strong>Equipe:</strong> {processo.equipe || "—"}</p>
+                    <p><strong>Observações:</strong> {processo.observacoes || "—"}</p>
+                <h2 className="font-semibold mb-3">📍 Objetivos</h2>
+
+                    {objetivos.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                            Nenhum objetivo cadastrado.
+                        </p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {objetivos.map((o) => (
+                                <li key={o.id} className="border-l-4 border-[var(--cmv-blue)] pl-3 py-1">
+                                    <p className="text-sm font-medium">
+                                        {o.ordem}. {o.titulo}
+                                    </p>
+
+                                    <p className="text-xs text-gray-600">
+                                        {o.status || "Planejado"} ·
+                                        Início: {o.data_inicio || "—"} ·
+                                        Previsto: {o.data_fim_prevista || "—"}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+
+                {/* DISCO DO PROCESSO */}
+                <section className="bg-white p-4 rounded shadow mb-6">
+                    <h2 className="font-semibold mb-3">🧭 Linha do tempo visual</h2>
+
+                    <DiscoProcesso processo={processo} objetivos={objetivos} />
+                </section>
+
+                {/* LINHA DO TEMPO */}
+                <section>
+                    <h2 className="font-semibold mb-3">🕒 Linha do tempo</h2>
+
+                    <button
+                        onClick={() => setMostrarDetalhes(!mostrarDetalhes)}
+                        className="text-sm underline mb-3"
+                    >
+                        {mostrarDetalhes ? "Ocultar detalhes" : "Mostrar detalhes"}
+                    </button>
+
+                    <ul className="space-y-3 border-l pl-4">
+                        {eventos
+                            .filter((e) =>
+                                mostrarDetalhes ? true : e.tipo !== "EDICAO_CAMPO"
+                            )
+                            .map((e, i) => (
+                                <li key={i} className="relative">
+                                    <span className="absolute -left-[9px] top-1 w-3 h-3 bg-[var(--cmv-blue)] rounded-full" />
+
+                                    <p className="text-sm">
+                                        {textoEvento(e)}
+                                    </p>
+
+                                    <p className="text-xs text-gray-500">
+                                        {dataHumana(e.criado_em)}
+                                    </p>
+                                </li>
+                            ))}
                     </ul>
-                )}
-            </section>
-        </main>
+                </section>
+            </main>
+        </>
     );
 }

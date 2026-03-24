@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  COORDENADOR
+  EQUIPE
+  LEITOR
+}
+
+enum TeamRole {
+  LIDER
+  MEMBRO
+  LEITOR
+}
+
+enum ProcessoStatus {
+  ATIVO
+  ATENCAO
+  TRANSICAO
+  PLANEJADO
+  CONCLUIDO
+}
+
+enum ProcessoEtapa {
+  PLANEJAMENTO
+  EXECUCAO
+  ACOMPANHAMENTO
+  TRANSICAO
+  CONCLUIDO
+}
+
+enum ObjetivoStatus {
+  PLANEJADO
+  EM_ANDAMENTO
+  ATENCAO
+  CONCLUIDO
+}
+
+enum EventoTipo {
+  CRIACAO
+  MUDANCA_ETAPA
+  OBJETIVO
+  EDICAO_CAMPO
+  COMENTARIO
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  passwordHash       String?
+  passwordSalt       String?
+  verifiedAt         DateTime?
+  role               UserRole            @default(EQUIPE)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  memberships        TeamMember[]
+  processosCriados   Processo[]          @relation("ProcessoCriadoPor")
+  processosAtualizados Processo[]        @relation("ProcessoAtualizadoPor")
+  objetivosResponsavel Objetivo[]
+  comentarios        ProcessoComentario[]
+  eventos            ProcessoEvento[]
+  verificationCodes  AuthVerificationCode[]
+}
+
+model Team {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  description  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  memberships  TeamMember[]
+  processos    Processo[]
+}
+
+model TeamMember {
+  id         String    @id @default(cuid())
+  teamId     String
+  userId     String
+  role       TeamRole  @default(MEMBRO)
+  createdAt  DateTime  @default(now())
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model Processo {
+  id                  String               @id @default(cuid())
+  slug                String               @unique
+  nome                String
+  ambito              String
+  equipeTexto         String?
+  coordAtual          String?
+  coordFuturo         String?
+  etapa               ProcessoEtapa        @default(PLANEJAMENTO)
+  etapaDesde          DateTime?
+  status              ProcessoStatus       @default(ATIVO)
+  dataInicio          DateTime?
+  dataPrevistaFim     DateTime?
+  dataFim             DateTime?
+  objetivoGeral       String?
+  objetivoInicio      DateTime?
+  objetivoFimPrevisto DateTime?
+  observacoes         String?
+  legacyId            Int?                 @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  teamId              String?
+  createdById         String?
+  updatedById         String?
+  team                Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdBy           User?                @relation("ProcessoCriadoPor", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy           User?                @relation("ProcessoAtualizadoPor", fields: [updatedById], references: [id], onDelete: SetNull)
+  objetivos           Objetivo[]
+  eventos             ProcessoEvento[]
+  comentarios         ProcessoComentario[]
+}
+
+model Objetivo {
+  id               String          @id @default(cuid())
+  processoId       String
+  ordem            Int
+  titulo           String
+  dataInicio       DateTime?
+  dataFimPrevista  DateTime?
+  status           ObjetivoStatus  @default(PLANEJADO)
+  legacyId         Int?            @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  responsavelId    String?
+  processo         Processo        @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  responsavel      User?           @relation(fields: [responsavelId], references: [id], onDelete: SetNull)
+
+  @@unique([processoId, ordem])
+}
+
+model ProcessoEvento {
+  id             String      @id @default(cuid())
+  processoId      String
+  tipo            EventoTipo
+  campo           String?
+  valorAnterior   String?
+  valorNovo       String?
+  observacao      String?
+  visivel         Boolean     @default(true)
+  legacyId        Int?        @unique
+  createdAt       DateTime    @default(now())
+  actorId         String?
+  processo        Processo    @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  actor           User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model ProcessoComentario {
+  id          String    @id @default(cuid())
+  processoId   String
+  autorId      String
+  conteudo     String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  processo     Processo  @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  autor        User      @relation(fields: [autorId], references: [id], onDelete: Cascade)
+}
+
+model AuthVerificationCode {
+  id         String   @id @default(cuid())
+  email      String
+  purpose    String
+  codeHash   String
+  codeSalt   String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, purpose, expiresAt])
+}
