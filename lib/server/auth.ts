@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import db from "@/app/api/processos/db";
 import { sendVerificationEmail } from "./mailer";
 import {
     createSessionToken,
@@ -19,7 +18,7 @@ type SetupTokenPayload = {
 };
 
 type AuthUserRow = {
-    id: number;
+    id: number | string;
     email: string;
     nome: string | null;
     role: AppSession["role"];
@@ -27,6 +26,28 @@ type AuthUserRow = {
     password_salt: string | null;
     verified_em: string | null;
 };
+
+type VerificationCodeRow = {
+    id: number | string;
+    code_hash: string;
+    code_salt: string;
+    expires_em: string;
+    used_em: string | null;
+};
+
+function isPrismaProvider() {
+    return (process.env.DATA_PROVIDER || "sqlite").toLowerCase() === "prisma";
+}
+
+async function getPrisma() {
+    const { default: prisma } = await import("@/lib/server/prisma");
+    return prisma;
+}
+
+async function getSqliteDb() {
+    const { default: db } = await import("@/app/api/processos/db");
+    return db;
+}
 
 async function digestText(value: string) {
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -89,12 +110,184 @@ function getBootstrapUser() {
     };
 }
 
-function getUserByEmail(email: string) {
+async function getUserByEmail(email: string): Promise<AuthUserRow | null> {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (isPrismaProvider()) {
+        const prisma = await getPrisma();
+        const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+        if (!user) return null;
+        return {
+            id: user.id,
+            email: user.email,
+            nome: user.name,
+            role: user.role,
+            password_hash: user.passwordHash,
+            password_salt: user.passwordSalt,
+            verified_em: user.verifiedAt?.toISOString() || null,
+        };
+    }
+
+    const db = await getSqliteDb();
+    return (
+        (db.prepare(`
+            SELECT id, email, nome, role, password_hash, password_salt, verified_em
+            FROM auth_users
+            WHERE email = ?
+        `).get(normalizedEmail) as AuthUserRow | undefined) ?? null
+    );
+}
+
+async function invalidateOpenCodes(email: string) {
+    const normalizedEmail = normalizeEmail(email);
+    const timestamp = nowIso();
+
+    if (isPrismaProvider()) {
+        const prisma = await getPrisma();
+        await prisma.authVerificationCode.updateMany({
+            where: {
+                email: normalizedEmail,
+                purpose: "FIRST_ACCESS",
+                usedAt: null,
+            },
+            data: { usedAt: new Date(timestamp) },
+        });
+        return;
+    }
+
+    const db = await getSqliteDb();
+    db.prepare(`
+        UPDATE auth_verification_codes
+        SET used_em = ?
+        WHERE email = ? AND purpose = 'FIRST_ACCESS' AND used_em IS NULL
+    `).run(timestamp, normalizedEmail);
+}
+
+async function insertVerificationCode(email: string, codeHash: string, codeSalt: string) {
+    const normalizedEmail = normalizeEmail(email);
+    const createdAt = nowIso();
+    const expiresAt = expiresIso(CODE_TTL_MINUTES);
+
+    if (isPrismaProvider()) {
+        const prisma = await getPrisma();
+        const user = await prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
+        await prisma.authVerificationCode.create({
+            data: {
+                email: normalizedEmail,
+                purpose: "FIRST_ACCESS",
+                codeHash,
+                codeSalt,
+                expiresAt: new Date(expiresAt),
+                createdAt: new Date(createdAt),
+                userId: user?.id,
+            },
+        });
+        return;
+    }
+
+    const db = await getSqliteDb();
+    db.prepare(`
+        INSERT INTO auth_verification_codes
+        (email, purpose, code_hash, code_salt, expires_em, criado_em)
+        VALUES (?, 'FIRST_ACCESS', ?, ?, ?, ?)
+    `).run(normalizedEmail, codeHash, codeSalt, expiresAt, createdAt);
+}
+
+async function listVerificationCodes(email: string): Promise<VerificationCodeRow[]> {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (isPrismaProvider()) {
+        const prisma = await getPrisma();
+        const rows = await prisma.authVerificationCode.findMany({
+            where: {
+                email: normalizedEmail,
+                purpose: "FIRST_ACCESS",
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
+        return rows.map((row) => ({
+            id: row.id,
+            code_hash: row.codeHash,
+            code_salt: row.codeSalt,
+            expires_em: row.expiresAt.toISOString(),
+            used_em: row.usedAt?.toISOString() || null,
+        }));
+    }
+
+    const db = await getSqliteDb();
     return db.prepare(`
-        SELECT id, email, nome, role, password_hash, password_salt, verified_em
-        FROM auth_users
-        WHERE email = ?
-    `).get(normalizeEmail(email)) as AuthUserRow | undefined;
+        SELECT id, code_hash, code_salt, expires_em, used_em
+        FROM auth_verification_codes
+        WHERE email = ? AND purpose = 'FIRST_ACCESS'
+        ORDER BY id DESC
+    `).all(normalizedEmail) as VerificationCodeRow[];
+}
+
+async function markVerificationCodeUsed(id: string | number) {
+    const timestamp = nowIso();
+
+    if (isPrismaProvider()) {
+        const prisma = await getPrisma();
+        await prisma.authVerificationCode.update({
+            where: { id: String(id) },
+            data: { usedAt: new Date(timestamp) },
+        });
+        return;
+    }
+
+    const db = await getSqliteDb();
+    db.prepare(`UPDATE auth_verification_codes SET used_em = ? WHERE id = ?`).run(timestamp, id);
+}
+
+async function upsertUser(params: {
+    email: string;
+    name: string;
+    passwordHash: string;
+    passwordSalt: string;
+    existingRole?: AppSession["role"] | null;
+}) {
+    const normalizedEmail = normalizeEmail(params.email);
+    const timestamp = nowIso();
+
+    if (isPrismaProvider()) {
+        const prisma = await getPrisma();
+        await prisma.user.upsert({
+            where: { email: normalizedEmail },
+            create: {
+                email: normalizedEmail,
+                name: params.name,
+                role: params.existingRole || "EQUIPE",
+                passwordHash: params.passwordHash,
+                passwordSalt: params.passwordSalt,
+                verifiedAt: new Date(timestamp),
+            },
+            update: {
+                name: params.name,
+                passwordHash: params.passwordHash,
+                passwordSalt: params.passwordSalt,
+                verifiedAt: new Date(timestamp),
+                ...(params.existingRole ? { role: params.existingRole } : {}),
+            },
+        });
+        return;
+    }
+
+    const db = await getSqliteDb();
+    const existing = await getUserByEmail(normalizedEmail);
+    if (existing) {
+        db.prepare(`
+            UPDATE auth_users
+            SET nome = ?, password_hash = ?, password_salt = ?, verified_em = ?, atualizado_em = ?
+            WHERE email = ?
+        `).run(params.name, params.passwordHash, params.passwordSalt, timestamp, timestamp, normalizedEmail);
+    } else {
+        db.prepare(`
+            INSERT INTO auth_users
+            (email, nome, role, password_hash, password_salt, verified_em, criado_em, atualizado_em)
+            VALUES (?, ?, 'EQUIPE', ?, ?, ?, ?, ?)
+        `).run(normalizedEmail, params.name, params.passwordHash, params.passwordSalt, timestamp, timestamp, timestamp);
+    }
 }
 
 export { createSessionToken, SESSION_COOKIE, verifySessionToken };
@@ -124,7 +317,7 @@ export async function authenticateUser(email: string, password: string) {
         } satisfies AppSession;
     }
 
-    const user = getUserByEmail(normalizedEmail);
+    const user = await getUserByEmail(normalizedEmail);
     if (!user?.password_hash || !user.password_salt) {
         return null;
     }
@@ -152,17 +345,8 @@ export async function requestEmailCode(email: string) {
     const salt = randomSalt();
     const codeHash = await hashSecret(code, salt);
 
-    db.prepare(`
-        UPDATE auth_verification_codes
-        SET used_em = ?
-        WHERE email = ? AND purpose = 'FIRST_ACCESS' AND used_em IS NULL
-    `).run(nowIso(), normalizedEmail);
-
-    db.prepare(`
-        INSERT INTO auth_verification_codes
-        (email, purpose, code_hash, code_salt, expires_em, criado_em)
-        VALUES (?, 'FIRST_ACCESS', ?, ?, ?, ?)
-    `).run(normalizedEmail, codeHash, salt, expiresIso(CODE_TTL_MINUTES), nowIso());
+    await invalidateOpenCodes(normalizedEmail);
+    await insertVerificationCode(normalizedEmail, codeHash, salt);
 
     const mailResult = await sendVerificationEmail(normalizedEmail, code);
 
@@ -175,19 +359,7 @@ export async function requestEmailCode(email: string) {
 
 export async function verifyFirstAccessCode(email: string, code: string) {
     const normalizedEmail = normalizeEmail(email);
-    const rows = db.prepare(`
-        SELECT id, code_hash, code_salt, expires_em, used_em
-        FROM auth_verification_codes
-        WHERE email = ? AND purpose = 'FIRST_ACCESS'
-        ORDER BY id DESC
-    `).all(normalizedEmail) as Array<{
-        id: number;
-        code_hash: string;
-        code_salt: string;
-        expires_em: string;
-        used_em: string | null;
-    }>;
-
+    const rows = await listVerificationCodes(normalizedEmail);
     const now = Date.now();
 
     for (const row of rows) {
@@ -197,7 +369,7 @@ export async function verifyFirstAccessCode(email: string, code: string) {
         const hash = await hashSecret(code, row.code_salt);
         if (hash !== row.code_hash) continue;
 
-        db.prepare(`UPDATE auth_verification_codes SET used_em = ? WHERE id = ?`).run(nowIso(), row.id);
+        await markVerificationCodeUsed(row.id);
         const setupToken = await signPayload<SetupTokenPayload>({
             email: normalizedEmail,
             purpose: "FIRST_ACCESS",
@@ -236,23 +408,16 @@ export async function completeFirstAccess(params: {
 
     const salt = randomSalt();
     const passwordHash = await hashSecret(params.password, salt);
-    const existing = getUserByEmail(normalizedEmail);
+    const existing = await getUserByEmail(normalizedEmail);
     const name = (params.name || normalizedEmail.split("@")[0]).trim();
-    const timestamp = nowIso();
 
-    if (existing) {
-        db.prepare(`
-            UPDATE auth_users
-            SET nome = ?, password_hash = ?, password_salt = ?, verified_em = ?, atualizado_em = ?
-            WHERE email = ?
-        `).run(name, passwordHash, salt, timestamp, timestamp, normalizedEmail);
-    } else {
-        db.prepare(`
-            INSERT INTO auth_users
-            (email, nome, role, password_hash, password_salt, verified_em, criado_em, atualizado_em)
-            VALUES (?, ?, 'EQUIPE', ?, ?, ?, ?, ?)
-        `).run(normalizedEmail, name, passwordHash, salt, timestamp, timestamp, timestamp);
-    }
+    await upsertUser({
+        email: normalizedEmail,
+        name,
+        passwordHash,
+        passwordSalt: salt,
+        existingRole: existing?.role || "EQUIPE",
+    });
 
     return {
         ok: true as const,
