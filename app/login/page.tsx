@@ -139,7 +139,7 @@ export default function LoginPage() {
                     Entrar no programa
                 </h1>
                 <p className="mt-2 text-sm text-slate-600">
-                    Acesso institucional para a comunidade Villa Regia.
+                    Acesso institucional para a Comunidade Missionaria de Villaregia de Belo Horizonte.
                 </p>
 
                 <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 text-sm">
