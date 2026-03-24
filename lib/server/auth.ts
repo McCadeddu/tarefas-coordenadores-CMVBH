@@ -36,7 +36,7 @@ type VerificationCodeRow = {
 };
 
 function isPrismaProvider() {
-    return (process.env.DATA_PROVIDER || "sqlite").toLowerCase() === "prisma";
+    return (process.env.DATA_PROVIDER || "sqlite").trim().toLowerCase() === "prisma";
 }
 
 async function getPrisma() {
