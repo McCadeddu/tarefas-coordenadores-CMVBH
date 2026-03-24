@@ -387,7 +387,7 @@ export async function verifyFirstAccessCode(email: string, code: string) {
 
 export async function completeFirstAccess(params: {
     email: string;
-    setupToken: string;
+    setupToken?: string;
     password: string;
     name?: string;
 }) {
@@ -397,19 +397,25 @@ export async function completeFirstAccess(params: {
         return { ok: false as const, error: "Use um email institucional valido." };
     }
 
-    if (params.password.length < 6) {
-        return { ok: false as const, error: "A senha precisa ter pelo menos 6 caracteres." };
+    if (!/^\d{6}$/.test(params.password)) {
+        return { ok: false as const, error: "A senha precisa ter exatamente 6 numeros." };
     }
 
-    const payload = await verifySignedPayload<SetupTokenPayload>(params.setupToken).catch(() => null);
-    if (!payload || payload.email !== normalizedEmail || payload.purpose !== "FIRST_ACCESS") {
-        return { ok: false as const, error: "Validacao de primeiro acesso invalida." };
+    if (params.setupToken) {
+        const payload = await verifySignedPayload<SetupTokenPayload>(params.setupToken).catch(() => null);
+        if (!payload || payload.email != normalizedEmail || payload.purpose != "FIRST_ACCESS") {
+            return { ok: false as const, error: "Validacao de primeiro acesso invalida." };
+        }
+    }
+
+    const existing = await getUserByEmail(normalizedEmail);
+    if (existing?.password_hash && existing.password_salt) {
+        return { ok: false as const, error: "Este email ja possui senha cadastrada." };
     }
 
     const salt = randomSalt();
     const passwordHash = await hashSecret(params.password, salt);
-    const existing = await getUserByEmail(normalizedEmail);
-    const name = (params.name || normalizedEmail.split("@")[0]).trim();
+    const name = (params.name || existing?.nome || normalizedEmail.split("@")[0]).trim();
 
     await upsertUser({
         email: normalizedEmail,
