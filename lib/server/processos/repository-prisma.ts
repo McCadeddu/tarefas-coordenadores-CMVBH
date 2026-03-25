@@ -1,6 +1,8 @@
-import { EventoTipo, ObjetivoStatus, ProcessoEtapa, ProcessoStatus } from "@prisma/client";
+﻿import { EventoTipo, ObjetivoStatus, ProcessoEtapa, ProcessoStatus } from "@prisma/client";
 import prisma from "../prisma";
 import type {
+    EncontroEquipeInput,
+    EncontroEquipeItem,
     EventoItem,
     ObjetivoInput,
     ObjetivoItem,
@@ -31,20 +33,20 @@ function normalizeLabel(value?: string | null) {
 function mapEtapa(value: ProcessoEtapa) {
     return {
         PLANEJAMENTO: "Planejamento",
-        EXECUCAO: "Execu??o",
+        EXECUCAO: "Execução",
         ACOMPANHAMENTO: "Acompanhamento",
-        TRANSICAO: "Transi??o",
-        CONCLUIDO: "Conclu?do",
+        TRANSICAO: "Transição",
+        CONCLUIDO: "Concluído",
     }[value];
 }
 
 function mapStatus(value: ProcessoStatus | ObjetivoStatus) {
     return {
         ATIVO: "Ativo",
-        ATENCAO: "Aten??o",
-        TRANSICAO: "Transi??o",
+        ATENCAO: "Atenção",
+        TRANSICAO: "Transição",
         PLANEJADO: "Planejado",
-        CONCLUIDO: "Conclu?do",
+        CONCLUIDO: "Concluído",
         EM_ANDAMENTO: "Em andamento",
     }[value];
 }
@@ -60,35 +62,29 @@ function mapEventoTipo(value: EventoTipo) {
 }
 
 function toEtapa(value?: string | null): ProcessoEtapa {
-    const normalized = normalizeLabel(value || "Planejamento");
-    return {
-        planejamento: ProcessoEtapa.PLANEJAMENTO,
-        execucao: ProcessoEtapa.EXECUCAO,
-        acompanhamento: ProcessoEtapa.ACOMPANHAMENTO,
-        transicao: ProcessoEtapa.TRANSICAO,
-        concluido: ProcessoEtapa.CONCLUIDO,
-    }[normalized] ?? ProcessoEtapa.PLANEJAMENTO;
+    const normalized = normalizeLabel(value);
+    if (normalized === "execucao") return ProcessoEtapa.EXECUCAO;
+    if (normalized === "acompanhamento") return ProcessoEtapa.ACOMPANHAMENTO;
+    if (normalized === "transicao") return ProcessoEtapa.TRANSICAO;
+    if (normalized === "concluido") return ProcessoEtapa.CONCLUIDO;
+    return ProcessoEtapa.PLANEJAMENTO;
 }
 
 function toProcessoStatus(value?: string | null): ProcessoStatus {
-    const normalized = normalizeLabel(value || "Ativo");
-    return {
-        ativo: ProcessoStatus.ATIVO,
-        atencao: ProcessoStatus.ATENCAO,
-        transicao: ProcessoStatus.TRANSICAO,
-        planejado: ProcessoStatus.PLANEJADO,
-        concluido: ProcessoStatus.CONCLUIDO,
-    }[normalized] ?? ProcessoStatus.ATIVO;
+    const normalized = normalizeLabel(value);
+    if (normalized === "atencao") return ProcessoStatus.ATENCAO;
+    if (normalized === "transicao") return ProcessoStatus.TRANSICAO;
+    if (normalized === "planejado") return ProcessoStatus.PLANEJADO;
+    if (normalized === "concluido") return ProcessoStatus.CONCLUIDO;
+    return ProcessoStatus.ATIVO;
 }
 
 function toObjetivoStatus(value?: string | null): ObjetivoStatus {
-    const normalized = normalizeLabel(value || "Planejado");
-    return {
-        planejado: ObjetivoStatus.PLANEJADO,
-        "em andamento": ObjetivoStatus.EM_ANDAMENTO,
-        atencao: ObjetivoStatus.ATENCAO,
-        concluido: ObjetivoStatus.CONCLUIDO,
-    }[normalized] ?? ObjetivoStatus.PLANEJADO;
+    const normalized = normalizeLabel(value);
+    if (normalized === "em andamento" || normalized === "emandamento") return ObjetivoStatus.EM_ANDAMENTO;
+    if (normalized === "atencao") return ObjetivoStatus.ATENCAO;
+    if (normalized === "concluido") return ObjetivoStatus.CONCLUIDO;
+    return ObjetivoStatus.PLANEJADO;
 }
 
 function normalizarObjetivos(objetivos: ProcessoInput["objetivos"]): Required<ObjetivoInput>[] {
@@ -106,7 +102,99 @@ function normalizarObjetivos(objetivos: ProcessoInput["objetivos"]): Required<Ob
         .filter((objetivo) => objetivo.titulo.length > 0) as Required<ObjetivoInput>[];
 }
 
-function buildFieldEvents(atual: NonNullable<Awaited<ReturnType<typeof prisma.processo.findUnique>>>, input: ProcessoInput) {
+function normalizarPresencas(presencas: EncontroEquipeInput["presencas"]) {
+    if (!Array.isArray(presencas)) return [];
+
+    return presencas
+        .map((presenca) => ({
+            nome: String(presenca.nome ?? "").trim(),
+            presente: Boolean(presenca.presente ?? true),
+        }))
+        .filter((presenca) => presenca.nome.length > 0);
+}
+
+function normalizarPautas(pautas: EncontroEquipeInput["pautas"]) {
+    if (!Array.isArray(pautas)) return [];
+
+    return pautas
+        .map((pauta, index) => ({
+            ordem: Number(pauta.ordem ?? index + 1),
+            titulo: String(pauta.titulo ?? "").trim(),
+            relatorio: pauta.relatorio?.trim() || null,
+            decisao_titulo: pauta.decisao_titulo?.trim() || null,
+            votos_favoraveis: Number(pauta.votos_favoraveis ?? 0),
+            votos_contrarios: Number(pauta.votos_contrarios ?? 0),
+            abstencoes: Number(pauta.abstencoes ?? 0),
+            encaminhamento: pauta.encaminhamento?.trim() || null,
+        }))
+        .filter((pauta) => pauta.titulo.length > 0)
+        .sort((a, b) => a.ordem - b.ordem);
+}
+
+type ProcessoEventDraft = {
+    tipo: EventoTipo;
+    campo?: string | null;
+    valorAnterior?: string | null;
+    valorNovo?: string | null;
+    observacao?: string | null;
+    visivel?: boolean;
+};
+
+type PrismaEncontroRecord = {
+    id: string;
+    titulo: string;
+    dataEncontro: Date;
+    pautaGeral: string | null;
+    secretario: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    processo: { slug: string };
+    presencas: Array<{ id: string; nome: string; presente: boolean }>;
+    pautas: Array<{
+        id: string;
+        ordem: number;
+        titulo: string;
+        relatorio: string | null;
+        decisaoTitulo: string | null;
+        votosFavoraveis: number;
+        votosContrarios: number;
+        abstencoes: number;
+        encaminhamento: string | null;
+    }>;
+};
+
+function mapEncontro(encontro: PrismaEncontroRecord): EncontroEquipeItem {
+    return {
+        id: encontro.id,
+        processo_slug: encontro.processo.slug,
+        titulo: encontro.titulo,
+        data_encontro: encontro.dataEncontro.toISOString(),
+        pauta_geral: encontro.pautaGeral,
+        secretario: encontro.secretario,
+        criado_em: encontro.createdAt.toISOString(),
+        atualizado_em: encontro.updatedAt.toISOString(),
+        presencas: encontro.presencas.map((presenca) => ({
+            id: presenca.id,
+            nome: presenca.nome,
+            presente: presenca.presente,
+        })),
+        pautas: encontro.pautas.map((pauta) => ({
+            id: pauta.id,
+            ordem: pauta.ordem,
+            titulo: pauta.titulo,
+            relatorio: pauta.relatorio,
+            decisao_titulo: pauta.decisaoTitulo,
+            votos_favoraveis: pauta.votosFavoraveis,
+            votos_contrarios: pauta.votosContrarios,
+            abstencoes: pauta.abstencoes,
+            encaminhamento: pauta.encaminhamento,
+        })),
+    };
+}
+
+type ProcessoSnapshot = Awaited<ReturnType<typeof prisma.processo.findUnique>> extends infer T ? NonNullable<T> : never;
+
+function buildFieldEvents(atual: ProcessoSnapshot, input: ProcessoInput) {
     const fields = [
         ["nome", atual.nome, input.nome],
         ["ambito", atual.ambito, input.ambito],
@@ -123,11 +211,11 @@ function buildFieldEvents(atual: NonNullable<Awaited<ReturnType<typeof prisma.pr
     ];
 
     return fields
-        .filter(([, anterior, novo]) => String(anterior ?? "") != String(novo ?? ""))
-        .map(([campo, anterior, novo]) => ({
+        .filter(([, antigo, novo]) => String(antigo ?? "") !== String(novo ?? ""))
+        .map(([campo, antigo, novo]) => ({
             tipo: EventoTipo.EDICAO_CAMPO,
-            campo: campo as string,
-            valorAnterior: String(anterior ?? ""),
+            campo,
+            valorAnterior: String(antigo ?? ""),
             valorNovo: String(novo ?? ""),
         }));
 }
@@ -211,6 +299,33 @@ export class PrismaProcessosRepository implements ProcessosRepository {
         }));
     }
 
+    async listEncontros(slug: string): Promise<EncontroEquipeItem[]> {
+        const encontros = await prisma.processoEncontro.findMany({
+            where: { processo: { slug } },
+            orderBy: { dataEncontro: "asc" },
+            include: {
+                processo: { select: { slug: true } },
+                presencas: { orderBy: { createdAt: "asc" } },
+                pautas: { orderBy: { ordem: "asc" } },
+            },
+        });
+
+        return encontros.map(mapEncontro);
+    }
+
+    async getEncontroById(slug: string, id: string): Promise<EncontroEquipeItem | null> {
+        const encontro = await prisma.processoEncontro.findFirst({
+            where: { id, processo: { slug } },
+            include: {
+                processo: { select: { slug: true } },
+                presencas: { orderBy: { createdAt: "asc" } },
+                pautas: { orderBy: { ordem: "asc" } },
+            },
+        });
+
+        return encontro ? mapEncontro(encontro) : null;
+    }
+
     async createProcesso(input: ProcessoInput): Promise<RepositoryMutationResult> {
         const objetivos = normalizarObjetivos(input.objetivos);
 
@@ -265,7 +380,7 @@ export class PrismaProcessosRepository implements ProcessosRepository {
         const objetivosRecebidos = normalizarObjetivos(input.objetivos);
         const existingMap = new Map(atual.objetivos.map((objetivo) => [objetivo.id, objetivo]));
         const objetivoIdsMantidos = new Set<string>();
-        const objectiveEvents: Array<{ tipo: EventoTipo; observacao: string; visivel?: boolean }> = [];
+        const objectiveEvents: ProcessoEventDraft[] = [];
         const fieldEvents = buildFieldEvents(atual, input);
         const mudouEtapa = mapEtapa(atual.etapa) !== input.etapa;
 
@@ -357,15 +472,7 @@ export class PrismaProcessosRepository implements ProcessosRepository {
                 });
             }
 
-            const eventsToCreate: Array<{
-                tipo: EventoTipo;
-                campo?: string | null;
-                valorAnterior?: string | null;
-                valorNovo?: string | null;
-                observacao?: string | null;
-                visivel?: boolean;
-            }> = [...fieldEvents, ...objectiveEvents];
-
+            const eventsToCreate: ProcessoEventDraft[] = [...fieldEvents, ...objectiveEvents];
             if (mudouEtapa) {
                 eventsToCreate.push({
                     tipo: EventoTipo.MUDANCA_ETAPA,
@@ -380,10 +487,10 @@ export class PrismaProcessosRepository implements ProcessosRepository {
                     data: eventsToCreate.map((evento) => ({
                         processoId: atual.id,
                         tipo: evento.tipo,
-                        campo: evento.campo || null,
-                        valorAnterior: evento.valorAnterior || null,
-                        valorNovo: evento.valorNovo || null,
-                        observacao: evento.observacao || null,
+                        campo: ("campo" in evento ? evento.campo : null) || null,
+                        valorAnterior: ("valorAnterior" in evento ? evento.valorAnterior : null) || null,
+                        valorNovo: ("valorNovo" in evento ? evento.valorNovo : null) || null,
+                        observacao: ("observacao" in evento ? evento.observacao : null) || null,
                         visivel: evento.visivel ?? true,
                     })),
                 });
@@ -471,5 +578,100 @@ export class PrismaProcessosRepository implements ProcessosRepository {
         ]);
 
         return { ok: true };
+    }
+
+    async createEncontro(slug: string, input: EncontroEquipeInput): Promise<RepositoryMutationResult> {
+        const processo = await prisma.processo.findUnique({ where: { slug }, select: { id: true } });
+        if (!processo) {
+            return { ok: false, notFound: true };
+        }
+
+        const presencas = normalizarPresencas(input.presencas);
+        const pautas = normalizarPautas(input.pautas);
+        const encontro = await prisma.processoEncontro.create({
+            data: {
+                processoId: processo.id,
+                titulo: String(input.titulo ?? "").trim(),
+                dataEncontro: parseDate(input.data_encontro) || new Date(),
+                pautaGeral: input.pauta_geral || null,
+                secretario: input.secretario || null,
+                presencas: {
+                    create: presencas.map((presenca) => ({
+                        nome: presenca.nome,
+                        presente: presenca.presente,
+                    })),
+                },
+                pautas: {
+                    create: pautas.map((pauta, index) => ({
+                        ordem: pauta.ordem ?? index + 1,
+                        titulo: pauta.titulo,
+                        relatorio: pauta.relatorio,
+                        decisaoTitulo: pauta.decisao_titulo,
+                        votosFavoraveis: pauta.votos_favoraveis,
+                        votosContrarios: pauta.votos_contrarios,
+                        abstencoes: pauta.abstencoes,
+                        encaminhamento: pauta.encaminhamento,
+                    })),
+                },
+            },
+        });
+
+        return { ok: true, id: encontro.id };
+    }
+
+    async updateEncontro(slug: string, id: string, input: EncontroEquipeInput): Promise<RepositoryMutationResult> {
+        const encontro = await prisma.processoEncontro.findFirst({
+            where: { id, processo: { slug } },
+            select: { id: true },
+        });
+        if (!encontro) {
+            return { ok: false, notFound: true };
+        }
+
+        const presencas = normalizarPresencas(input.presencas);
+        const pautas = normalizarPautas(input.pautas);
+
+        await prisma.$transaction(async (tx) => {
+            await tx.processoEncontro.update({
+                where: { id },
+                data: {
+                    titulo: String(input.titulo ?? "").trim(),
+                    dataEncontro: parseDate(input.data_encontro) || new Date(),
+                    pautaGeral: input.pauta_geral || null,
+                    secretario: input.secretario || null,
+                },
+            });
+
+            await tx.processoEncontroPresenca.deleteMany({ where: { encontroId: id } });
+            await tx.processoEncontroPauta.deleteMany({ where: { encontroId: id } });
+
+            if (presencas.length > 0) {
+                await tx.processoEncontroPresenca.createMany({
+                    data: presencas.map((presenca) => ({
+                        encontroId: id,
+                        nome: presenca.nome,
+                        presente: presenca.presente,
+                    })),
+                });
+            }
+
+            if (pautas.length > 0) {
+                await tx.processoEncontroPauta.createMany({
+                    data: pautas.map((pauta, index) => ({
+                        encontroId: id,
+                        ordem: pauta.ordem ?? index + 1,
+                        titulo: pauta.titulo,
+                        relatorio: pauta.relatorio,
+                        decisaoTitulo: pauta.decisao_titulo,
+                        votosFavoraveis: pauta.votos_favoraveis,
+                        votosContrarios: pauta.votos_contrarios,
+                        abstencoes: pauta.abstencoes,
+                        encaminhamento: pauta.encaminhamento,
+                    })),
+                });
+            }
+        });
+
+        return { ok: true, id };
     }
 }

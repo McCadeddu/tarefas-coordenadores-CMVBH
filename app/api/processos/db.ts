@@ -91,4 +91,47 @@ db.prepare(`
   ON auth_verification_codes (email, purpose, expires_em)
 `).run();
 
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS processos_encontros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    processo_slug TEXT NOT NULL,
+    titulo TEXT NOT NULL,
+    data_encontro TEXT NOT NULL,
+    pauta_geral TEXT,
+    secretario TEXT,
+    criado_em TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL,
+    FOREIGN KEY (processo_slug) REFERENCES processos(slug)
+  )
+`).run();
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS processos_encontros_presencas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    encontro_id INTEGER NOT NULL,
+    nome TEXT NOT NULL,
+    presente INTEGER NOT NULL DEFAULT 1,
+    criado_em TEXT NOT NULL,
+    FOREIGN KEY (encontro_id) REFERENCES processos_encontros(id)
+  )
+`).run();
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS processos_encontros_pautas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    encontro_id INTEGER NOT NULL,
+    ordem INTEGER NOT NULL,
+    titulo TEXT NOT NULL,
+    relatorio TEXT,
+    decisao_titulo TEXT,
+    votos_favoraveis INTEGER NOT NULL DEFAULT 0,
+    votos_contrarios INTEGER NOT NULL DEFAULT 0,
+    abstencoes INTEGER NOT NULL DEFAULT 0,
+    encaminhamento TEXT,
+    criado_em TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL,
+    FOREIGN KEY (encontro_id) REFERENCES processos_encontros(id)
+  )
+`).run();
+
 export default db;
