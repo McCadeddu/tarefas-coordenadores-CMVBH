@@ -16,9 +16,11 @@ type SignedPayload = {
 };
 
 function getAuthSecret() {
-    return new TextEncoder().encode(
-        process.env.AUTH_SECRET || "troque-esta-chave-em-desenvolvimento"
-    );
+    const secret = (process.env.AUTH_SECRET || "troque-esta-chave-em-desenvolvimento")
+        .trim()
+        .replace(/^"|"$/g, "");
+
+    return new TextEncoder().encode(secret);
 }
 
 function toBase64Url(value: Uint8Array) {

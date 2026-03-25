@@ -35,8 +35,12 @@ type VerificationCodeRow = {
     used_em: string | null;
 };
 
+function normalizeEnvValue(value: string | undefined, fallback: string) {
+    return (value || fallback).trim().replace(/^"|"$/g, "").toLowerCase();
+}
+
 function isPrismaProvider() {
-    return (process.env.DATA_PROVIDER || "sqlite").trim().toLowerCase() === "prisma";
+    return normalizeEnvValue(process.env.DATA_PROVIDER, "sqlite") === "prisma";
 }
 
 async function getPrisma() {
