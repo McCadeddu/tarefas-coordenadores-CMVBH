@@ -13,7 +13,7 @@ export async function PUT(
     const result = await repository.updateObjetivo(slug, id, data);
 
     if (result.notFound) {
-        return NextResponse.json({ error: "N?o encontrado" }, { status: 404 });
+        return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
     return NextResponse.json(result);

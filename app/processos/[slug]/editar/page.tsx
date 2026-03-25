@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import NavTopo from "../../../components/NavTopo";
 import FormProcesso from "../../../components/FormProcesso";
+import { normalizeDateInput } from "@/lib/shared/date";
 
 type ProcessoEditavel = {
     slug: string;
@@ -51,12 +52,19 @@ export default function EditarProcessoPage() {
                 equipe: json.equipe || "",
                 coord_atual: json.coord_atual || "",
                 coord_futuro: json.coord_futuro || "",
-                data_prevista_fim: json.data_prevista_fim || "",
+                data_inicio: normalizeDateInput(json.data_inicio),
+                data_prevista_fim: normalizeDateInput(json.data_prevista_fim),
                 objetivo_geral: json.objetivo_geral || "",
-                objetivo_inicio: json.objetivo_inicio || "",
-                objetivo_fim_previsto: json.objetivo_fim_previsto || "",
+                objetivo_inicio: normalizeDateInput(json.objetivo_inicio),
+                objetivo_fim_previsto: normalizeDateInput(json.objetivo_fim_previsto),
                 observacoes: json.observacoes || "",
-                objetivos: Array.isArray(objetivos) ? objetivos : [],
+                objetivos: Array.isArray(objetivos)
+                    ? objetivos.map((objetivo) => ({
+                        ...objetivo,
+                        data_inicio: normalizeDateInput(objetivo.data_inicio),
+                        data_fim_prevista: normalizeDateInput(objetivo.data_fim_prevista),
+                    }))
+                    : [],
             });
         }
 

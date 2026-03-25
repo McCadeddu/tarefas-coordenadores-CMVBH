@@ -16,7 +16,7 @@ export async function GET(_req: Request, { params }: Context) {
         const processo = await repository.getProcessoBySlug(slug);
 
         if (!processo) {
-            return NextResponse.json({ error: "Processo n?o encontrado" }, { status: 404 });
+            return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
         }
 
         return NextResponse.json(processo);
@@ -37,7 +37,7 @@ export async function PUT(req: Request, { params }: Context) {
         const result = await repository.updateProcesso(slug, data);
 
         if (result.notFound) {
-            return NextResponse.json({ error: "Processo n?o encontrado" }, { status: 404 });
+            return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
         }
 
         return NextResponse.json(result);
@@ -57,7 +57,7 @@ export async function DELETE(
         const result = await repository.deleteProcesso(slug);
 
         if (result.notFound) {
-            return NextResponse.json({ error: "Processo n?o encontrado" }, { status: 404 });
+            return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
         }
 
         return NextResponse.json(result);

@@ -211,11 +211,11 @@ function buildFieldEvents(atual: ProcessoSnapshot, input: ProcessoInput) {
     ];
 
     return fields
-        .filter(([, antigo, novo]) => String(antigo ?? "") !== String(novo ?? ""))
-        .map(([campo, antigo, novo]) => ({
+        .filter(([, anterior, novo]) => String(anterior ?? "") !== String(novo ?? ""))
+        .map(([campo, anterior, novo]) => ({
             tipo: EventoTipo.EDICAO_CAMPO,
             campo,
-            valorAnterior: String(antigo ?? ""),
+            valorAnterior: String(anterior ?? ""),
             valorNovo: String(novo ?? ""),
         }));
 }

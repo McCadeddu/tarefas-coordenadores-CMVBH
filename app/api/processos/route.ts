@@ -32,7 +32,7 @@ export async function PUT(req: Request) {
         const result = await repository.updateProcesso(slug, data);
 
         if (result.notFound) {
-            return NextResponse.json({ error: "Processo n?o encontrado" }, { status: 404 });
+            return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
         }
 
         return NextResponse.json(result);

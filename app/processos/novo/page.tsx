@@ -6,11 +6,12 @@
 import { useRouter } from "next/navigation";
 import NavTopo from "../../components/NavTopo";
 import FormProcesso from "../../components/FormProcesso";
+import { formatDateForInput } from "@/lib/shared/date";
 
 export default function NovoProcessoPage() {
     const router = useRouter();
 
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = formatDateForInput(new Date());
 
     function gerarSlug(nome: string) {
         return nome

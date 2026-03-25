@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
+import { formatDateForInput } from "@/lib/shared/date";
 
 type Processo = {
     data_inicio: string;
@@ -47,7 +48,7 @@ type Props = {
     objetivos: Objetivo[];
 };
 
-const ETAPAS = ["Planejamento", "Em curso", "Acompanhamento", "Transi??o", "Conclu?do"];
+const ETAPAS = ["Planejamento", "Em curso", "Acompanhamento", "Transição", "Concluído"];
 
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
     const rad = ((angle - 90) * Math.PI) / 180;
@@ -153,8 +154,8 @@ function normalizarObjetivos(processo: Processo, objetivos: Objetivo[]): Objetiv
 
         return {
             ...objetivo,
-            data_inicio: objetivo.data_inicio || inicioEstimado.toISOString().slice(0, 10),
-            data_fim_prevista: objetivo.data_fim_prevista || fimEstimado.toISOString().slice(0, 10),
+            data_inicio: objetivo.data_inicio || formatDateForInput(inicioEstimado),
+            data_fim_prevista: objetivo.data_fim_prevista || formatDateForInput(fimEstimado),
             lane: 0,
         };
     });

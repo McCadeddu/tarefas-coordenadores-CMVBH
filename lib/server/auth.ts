@@ -40,7 +40,8 @@ function normalizeEnvValue(value: string | undefined, fallback: string) {
 }
 
 function isPrismaProvider() {
-    return normalizeEnvValue(process.env.DATA_PROVIDER, "sqlite") === "prisma";
+    const provider = normalizeEnvValue(process.env.DATA_PROVIDER, "");
+    return provider === "prisma" || (!provider && Boolean(process.env.DATABASE_URL?.trim()));
 }
 
 async function getPrisma() {
@@ -210,7 +211,13 @@ async function listVerificationCodes(email: string): Promise<VerificationCodeRow
             orderBy: { createdAt: "desc" },
         });
 
-        return rows.map((row) => ({
+        return rows.map((row: {
+            id: string;
+            codeHash: string;
+            codeSalt: string;
+            expiresAt: Date;
+            usedAt: Date | null;
+        }) => ({
             id: row.id,
             code_hash: row.codeHash,
             code_salt: row.codeSalt,
