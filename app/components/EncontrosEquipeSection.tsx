@@ -215,7 +215,7 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
                                         {objetivo.ordem}. {objetivo.titulo}
                                     </p>
                                     <p className="truncate text-[11px] text-emerald-800">
-                                        {objetivo.status || "Planejado"} {"\u2022"} {formatDateForDisplay(objetivo.data_inicio)} at\u00e9 {formatDateForDisplay(objetivo.data_fim_prevista)}
+                                        {objetivo.status || "Planejado"} {"•"} {formatDateForDisplay(objetivo.data_inicio)} até {formatDateForDisplay(objetivo.data_fim_prevista)}
                                     </p>
                                 </div>
                             ))}
@@ -279,12 +279,12 @@ export default function EncontrosEquipeSection({
                     <div>
                         <h2 className="text-lg font-semibold text-[var(--cmv-blue)]">Encontros de Equipe</h2>
                         <p className="text-sm text-slate-500">
-                            Cadastre encontros em uma p\u00e1gina pr\u00f3pria, reabra depois para completar o relat\u00f3rio e exporte em PDF.
+                            {"Cadastre encontros em uma página própria, reabra depois para completar o relatório e exporte em PDF."}
                         </p>
                     </div>
                     <Link
                         href={`/processos/${slug}/encontros/novo`}
-                        className="rounded-xl bg-[var(--cmv-blue)] px-4 py-3 text-sm font-semibold text-white"
+                        className="rounded-xl border border-[var(--cmv-blue)] bg-white px-4 py-3 text-sm font-semibold text-[var(--cmv-blue)] shadow-sm"
                     >
                         Encontro Equipe
                     </Link>
@@ -306,7 +306,7 @@ export default function EncontrosEquipeSection({
                                         <h3 className="text-lg font-semibold text-slate-800">{encontro.titulo}</h3>
                                         <p className="text-sm text-slate-500">
                                             {formatDateForDisplay(encontro.data_encontro)}
-                                            {encontro.secretario ? ` \u2022 Secret\u00e1rio: ${encontro.secretario}` : ""}
+                                            {encontro.secretario ? ` • Secretário: ${encontro.secretario}` : ""}
                                         </p>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
@@ -322,7 +322,7 @@ export default function EncontrosEquipeSection({
                                             rel="noreferrer"
                                             className="rounded-full bg-[var(--cmv-beige)] px-3 py-1 text-xs font-medium text-[var(--cmv-brown)]"
                                         >
-                                            PDF do relat\u00f3rio
+                                            {"PDF do relatório"}
                                         </a>
                                     </div>
                                 </div>

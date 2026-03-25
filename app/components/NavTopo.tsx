@@ -4,7 +4,7 @@ export default function NavTopo({ titulo }: { titulo?: string }) {
     return (
         <div className="mb-4 flex items-center gap-3 text-sm">
             <Link href="/" className="text-[var(--cmv-blue)] underline">
-                {"\u2190"} In\u00edcio
+                {"← Início"}
             </Link>
 
             <span className="text-gray-400">/</span>

@@ -133,7 +133,7 @@ export default function FormEncontroEquipe({
 
             if (!response.ok) {
                 const body = await response.json().catch(() => null);
-                throw new Error(body?.error || "N\u00e3o foi poss\u00edvel salvar o encontro.");
+                throw new Error(body?.error || "Não foi possível salvar o encontro.");
             }
 
             router.push(`/processos/${slug}`);
@@ -150,13 +150,13 @@ export default function FormEncontroEquipe({
             <div>
                 <h1 className="text-xl font-bold text-[var(--cmv-blue)]">{title}</h1>
                 <p className="mt-1 text-sm text-slate-500">
-                    Preencha data, pauta, presen\u00e7as, relat\u00f3rio e decis\u00f5es. Depois o encontro poder\u00e1 ser reaberto e exportado em PDF.
+                    {"Preencha data, pauta, presenças, relatório e decisões. Depois o encontro poderá ser reaberto e exportado em PDF."}
                 </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1 text-sm">
-                    <span className="font-medium text-slate-700">T\u00edtulo do encontro</span>
+                    <span className="font-medium text-slate-700">{"Título do encontro"}</span>
                     <input
                         className="w-full rounded-xl border border-slate-200 px-3 py-2"
                         value={form.titulo}
@@ -178,7 +178,7 @@ export default function FormEncontroEquipe({
 
             <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1 text-sm">
-                    <span className="font-medium text-slate-700">Secret\u00e1rio do encontro</span>
+                    <span className="font-medium text-slate-700">{"Secretário do encontro"}</span>
                     <input
                         className="w-full rounded-xl border border-slate-200 px-3 py-2"
                         value={form.secretario}
@@ -197,7 +197,7 @@ export default function FormEncontroEquipe({
 
             <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
                 <div className="flex items-center justify-between gap-3">
-                    <h2 className="font-semibold text-slate-800">Presen\u00e7as</h2>
+                    <h2 className="font-semibold text-slate-800">{"Presenças"}</h2>
                     <button
                         type="button"
                         onClick={() =>
@@ -208,7 +208,7 @@ export default function FormEncontroEquipe({
                         }
                         className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
                     >
-                        + Adicionar presen\u00e7a
+                        {"+ Adicionar presença"}
                     </button>
                 </div>
 
@@ -266,9 +266,9 @@ export default function FormEncontroEquipe({
             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <h2 className="font-semibold text-slate-800">Pauta e relat\u00f3rio</h2>
+                        <h2 className="font-semibold text-slate-800">{"Pauta e relatório"}</h2>
                         <p className="text-xs text-slate-500">
-                            Cada item vira um bloco do relat\u00f3rio do encontro.
+                            {"Cada item vira um bloco do relatório do encontro."}
                         </p>
                     </div>
                     <button
@@ -322,7 +322,7 @@ export default function FormEncontroEquipe({
 
                         <input
                             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                            placeholder="T\u00edtulo do ponto de pauta"
+                            placeholder="Título do ponto de pauta"
                             value={pauta.titulo}
                             onChange={(event) => {
                                 const titulo = event.target.value;
@@ -337,7 +337,7 @@ export default function FormEncontroEquipe({
 
                         <textarea
                             className="min-h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                            placeholder="Relat\u00f3rio do que foi discutido"
+                            placeholder="Relatório do que foi discutido"
                             value={pauta.relatorio || ""}
                             onChange={(event) => {
                                 const relatorio = event.target.value;
@@ -353,7 +353,7 @@ export default function FormEncontroEquipe({
                         <div className="grid gap-3 md:grid-cols-2">
                             <input
                                 className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                placeholder="Decis\u00e3o a ser votada"
+                                placeholder="Decisão a ser votada"
                                 value={pauta.decisao_titulo || ""}
                                 onChange={(event) => {
                                     const decisao_titulo = event.target.value;
@@ -383,9 +383,9 @@ export default function FormEncontroEquipe({
 
                         <div className="grid gap-3 sm:grid-cols-3">
                             {[
-                                ["votos_favoraveis", "Votos favor\u00e1veis"],
-                                ["votos_contrarios", "Votos contr\u00e1rios"],
-                                ["abstencoes", "Absten\u00e7\u00f5es"],
+                                ["votos_favoraveis", "Votos favoráveis"],
+                                ["votos_contrarios", "Votos contrários"],
+                                ["abstencoes", "Abstenções"],
                             ].map(([campo, label]) => (
                                 <label key={campo} className="space-y-1 text-sm">
                                     <span className="font-medium text-slate-700">{label}</span>
@@ -435,7 +435,7 @@ export default function FormEncontroEquipe({
                         rel="noreferrer"
                         className="rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-800"
                     >
-                        PDF do relat\u00f3rio
+                        {"PDF do relatório"}
                     </a>
                 )}
             </div>
