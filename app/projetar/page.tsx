@@ -22,7 +22,7 @@ type Processo = {
 
 const ETAPAS = [
     "Planejamento",
-    "Execução",
+    "Em curso",
     "Acompanhamento",
     "Transição",
     "Concluído",
@@ -49,7 +49,7 @@ function iconeDaEtapa(etapa: string) {
     switch (etapa) {
         case "Planejamento":
             return "📝";
-        case "Execução":
+        case "Em curso":
             return "▶️";
         case "Acompanhamento":
             return "👀";

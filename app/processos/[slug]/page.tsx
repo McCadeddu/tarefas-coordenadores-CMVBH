@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import DiscoProcesso from "../../components/DiscoProcesso";
 import EncontrosEquipeSection from "../../components/EncontrosEquipeSection";
 import NavTopo from "../../components/NavTopo";
+import { formatDateForDisplay } from "@/lib/shared/date";
 
 type Objetivo = {
     id: number | string;
@@ -67,18 +68,16 @@ type Processo = {
 
 function textoEvento(evento: Evento) {
     if (evento.tipo === "CRIACAO") return "Processo criado";
-    if (evento.tipo === "MUDANCA_ETAPA") return `Etapa mudou de "${evento.valor_anterior}" para "${evento.valor_novo}"`;
-    if (evento.tipo === "EDICAO_CAMPO") return `Campo "${evento.campo}" alterado`;
-    if (evento.tipo === "OBJETIVO" && evento.observacao) return evento.observacao;
-    return evento.observacao || "Atualiza??o no processo";
-}
-
-function dataHumana(data: string) {
-    return new Date(data).toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
+    if (evento.tipo === "MUDANCA_ETAPA") {
+        return `Etapa mudou de "${evento.valor_anterior}" para "${evento.valor_novo}"`;
+    }
+    if (evento.tipo === "EDICAO_CAMPO") {
+        return `Campo "${evento.campo}" alterado`;
+    }
+    if (evento.tipo === "OBJETIVO" && evento.observacao) {
+        return evento.observacao;
+    }
+    return evento.observacao || "Atualização no processo";
 }
 
 export default function ProcessoPage() {
@@ -149,37 +148,48 @@ export default function ProcessoPage() {
     }, [slug]);
 
     async function excluirProcesso() {
-        const res = await fetch(`/api/processos/${slug}`, { method: "DELETE" });
-        if (!res.ok) {
+        const response = await fetch(`/api/processos/${slug}`, { method: "DELETE" });
+        if (!response.ok) {
             alert("Erro ao excluir processo");
             return;
         }
+
         router.push("/processos");
     }
 
     function statusBadge(status: string) {
         const map: Record<string, string> = {
             Ativo: "badge-green",
-            "Aten\u00e7\u00e3o": "badge-yellow",
-            "Transi\u00e7\u00e3o": "badge-orange",
+            Atenção: "badge-yellow",
+            Transição: "badge-orange",
             Planejado: "badge-gray",
-            "Conclu\u00eddo": "badge-blue",
+            Concluído: "badge-blue",
         };
 
-        return <span className={`rounded px-2 py-1 text-xs font-medium ${map[status] || "badge-gray"}`}>{status}</span>;
+        return (
+            <span className={`rounded px-2 py-1 text-xs font-medium ${map[status] || "badge-gray"}`}>
+                {status}
+            </span>
+        );
     }
 
-    if (!processo) return <p className="p-6">Carregando?</p>;
+    if (!processo) {
+        return <p className="p-6">Carregando...</p>;
+    }
 
     return (
         <>
             {mostrarModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
                     <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-                        <h2 className="mb-3 text-lg font-semibold">Confirmar exclus?o</h2>
-                        <p className="mb-6 text-sm text-gray-600">Tem certeza que deseja excluir este processo? Esta a??o n?o pode ser desfeita.</p>
+                        <h2 className="mb-3 text-lg font-semibold">Confirmar exclusão</h2>
+                        <p className="mb-6 text-sm text-gray-600">
+                            Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.
+                        </p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setMostrarModal(false)} className="btn btn-secondary">Cancelar</button>
+                            <button onClick={() => setMostrarModal(false)} className="btn btn-secondary">
+                                Cancelar
+                            </button>
                             <button
                                 onClick={async () => {
                                     await excluirProcesso();
@@ -201,41 +211,47 @@ export default function ProcessoPage() {
                     <div className="flex items-center justify-between gap-4">
                         <h1 className="text-2xl font-bold text-[var(--cmv-blue)]">{processo.nome}</h1>
                         <div className="flex gap-3">
-                            <Link href={`/processos/${processo.slug}/editar`} className="btn btn-primary">?? Editar</Link>
-                            <button onClick={() => setMostrarModal(true)} className="btn bg-red-600 text-white hover:bg-red-700">??? Excluir</button>
+                            <Link href={`/processos/${processo.slug}/editar`} className="btn btn-primary">
+                                Editar
+                            </Link>
+                            <button onClick={() => setMostrarModal(true)} className="btn bg-red-600 text-white hover:bg-red-700">
+                                Excluir
+                            </button>
                         </div>
                     </div>
                 </header>
 
                 <section className="mb-6 grid grid-cols-1 gap-4 rounded-xl bg-white p-5 text-sm shadow md:grid-cols-2">
-                    <div><strong>?mbito:</strong> {processo.ambito}</div>
+                    <div><strong>Âmbito:</strong> {processo.ambito}</div>
                     <div><strong>Etapa:</strong> {processo.etapa}</div>
-                    <div><strong>Coordena??o:</strong> {processo.coord_atual || "?"}</div>
-                    <div><strong>Futuro:</strong> {processo.coord_futuro || "?"}</div>
-                    <div><strong>Equipe:</strong> {processo.equipe || "?"}</div>
+                    <div><strong>Coordenação:</strong> {processo.coord_atual || "—"}</div>
+                    <div><strong>Futuro:</strong> {processo.coord_futuro || "—"}</div>
+                    <div><strong>Equipe:</strong> {processo.equipe || "—"}</div>
                     <div><strong>Status:</strong> {statusBadge(processo.status)}</div>
                 </section>
 
                 <section className="mb-6 rounded-xl bg-white p-4 shadow">
-                    <h2 className="mb-2 font-semibold">?? Objetivo Geral</h2>
-                    <p>{processo.objetivo_geral || "?"}</p>
+                    <h2 className="mb-2 font-semibold">Objetivo Geral</h2>
+                    <p>{processo.objetivo_geral || "—"}</p>
                 </section>
 
                 <section className="mb-6 rounded-xl bg-white p-4 shadow">
                     <div className="mb-3 flex flex-wrap gap-4 text-sm text-slate-600">
-                        <p><strong>Equipe:</strong> {processo.equipe || "?"}</p>
-                        <p><strong>Observa??es:</strong> {processo.observacoes || "?"}</p>
+                        <p><strong>Equipe:</strong> {processo.equipe || "—"}</p>
+                        <p><strong>Observações:</strong> {processo.observacoes || "—"}</p>
                     </div>
-                    <h2 className="mb-3 font-semibold">?? Objetivos</h2>
+                    <h2 className="mb-3 font-semibold">Objetivos</h2>
                     {objetivos.length === 0 ? (
                         <p className="text-sm text-gray-500">Nenhum objetivo cadastrado.</p>
                     ) : (
                         <ul className="space-y-2">
                             {objetivos.map((objetivo) => (
                                 <li key={objetivo.id} className="border-l-4 border-[var(--cmv-blue)] py-1 pl-3">
-                                    <p className="text-sm font-medium">{objetivo.ordem}. {objetivo.titulo}</p>
+                                    <p className="text-sm font-medium">
+                                        {objetivo.ordem}. {objetivo.titulo}
+                                    </p>
                                     <p className="text-xs text-gray-600">
-                                        {objetivo.status || "Planejado"} ? In?cio: {objetivo.data_inicio || "?"} ? Previsto: {objetivo.data_fim_prevista || "?"}
+                                        {objetivo.status || "Planejado"} • Início: {formatDateForDisplay(objetivo.data_inicio)} • Previsto: {formatDateForDisplay(objetivo.data_fim_prevista)}
                                     </p>
                                 </li>
                             ))}
@@ -244,14 +260,19 @@ export default function ProcessoPage() {
                 </section>
 
                 <section className="mb-6 rounded-xl bg-white p-4 shadow">
-                    <h2 className="mb-3 font-semibold">?? Linha do tempo visual</h2>
+                    <h2 className="mb-3 font-semibold">Linha do tempo visual</h2>
                     <DiscoProcesso processo={processo} objetivos={objetivos} />
                 </section>
 
-                <EncontrosEquipeSection slug={slug} objetivos={objetivos} encontros={encontros} onSaved={carregarTudo} />
+                <EncontrosEquipeSection
+                    slug={slug}
+                    objetivos={objetivos}
+                    encontros={encontros}
+                    onSaved={carregarTudo}
+                />
 
                 <section className="mt-6">
-                    <h2 className="mb-3 font-semibold">?? Linha do tempo do processo</h2>
+                    <h2 className="mb-3 font-semibold">Linha do tempo do processo</h2>
                     <button onClick={() => setMostrarDetalhes(!mostrarDetalhes)} className="mb-3 text-sm underline">
                         {mostrarDetalhes ? "Ocultar detalhes" : "Mostrar detalhes"}
                     </button>
@@ -262,7 +283,7 @@ export default function ProcessoPage() {
                                 <li key={`${evento.criado_em}-${index}`} className="relative">
                                     <span className="absolute -left-[9px] top-1 h-3 w-3 rounded-full bg-[var(--cmv-blue)]" />
                                     <p className="text-sm">{textoEvento(evento)}</p>
-                                    <p className="text-xs text-gray-500">{dataHumana(evento.criado_em)}</p>
+                                    <p className="text-xs text-gray-500">{formatDateForDisplay(evento.criado_em)}</p>
                                 </li>
                             ))}
                     </ul>

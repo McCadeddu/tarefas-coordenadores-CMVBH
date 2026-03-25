@@ -19,7 +19,7 @@ type Processo = {
 
 const ETAPAS = [
     "Planejamento",
-    "Execução",
+    "Em curso",
     "Acompanhamento",
     "Transição",
     "Concluído",
@@ -46,7 +46,7 @@ function iconeDaEtapa(etapa: string) {
     switch (etapa) {
         case "Planejamento":
             return "📝";
-        case "Execução":
+        case "Em curso":
             return "▶️";
         case "Acompanhamento":
             return "👀";
@@ -299,7 +299,7 @@ export default function HomePage() {
                         >
                             <option>Todas</option>
                             <option>Planejamento</option>
-                            <option>Execução</option>
+                            <option>Em curso</option>
                             <option>Acompanhamento</option>
                             <option>Transição</option>
                             <option>Concluído</option>

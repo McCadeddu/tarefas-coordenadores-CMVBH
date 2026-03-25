@@ -3,6 +3,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { useState } from "react";
+import { normalizeDateInput } from "@/lib/shared/date";
 
 type ObjetivoForm = {
     id?: number | string;
@@ -30,25 +31,9 @@ type ProcessoForm = {
     objetivos: ObjetivoForm[];
 };
 
-function normalizarDataInput(valor?: string | null) {
-    if (!valor) return "";
-
-    const texto = String(valor).trim();
-    const match = texto.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
-
-    const data = new Date(texto);
-    if (Number.isNaN(data.getTime())) return "";
-
-    const ano = data.getFullYear();
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const dia = String(data.getDate()).padStart(2, "0");
-    return `${ano}-${mes}-${dia}`;
-}
-
 function normalizarEtapa(valor?: string | null) {
     if (!valor) return "Planejamento";
-    if (valor === "Execu\u00e7\u00e3o") return "Em curso";
+    if (valor === "Execução") return "Em curso";
     return valor;
 }
 
@@ -57,8 +42,8 @@ function normalizarObjetivo(objetivo: Partial<ObjetivoForm>): ObjetivoForm {
         id: objetivo.id,
         ordem: objetivo.ordem,
         titulo: objetivo.titulo ?? "",
-        data_inicio: normalizarDataInput(objetivo.data_inicio),
-        data_fim_prevista: normalizarDataInput(objetivo.data_fim_prevista),
+        data_inicio: normalizeDateInput(objetivo.data_inicio),
+        data_fim_prevista: normalizeDateInput(objetivo.data_fim_prevista),
         status: objetivo.status ?? "Planejado",
     };
 }
@@ -66,17 +51,17 @@ function normalizarObjetivo(objetivo: Partial<ObjetivoForm>): ObjetivoForm {
 function normalizarForm(data: Partial<ProcessoForm>): ProcessoForm {
     return {
         nome: data.nome ?? "",
-        ambito: data.ambito ?? "Miss?o",
+        ambito: data.ambito ?? "Missão",
         equipe: data.equipe ?? "",
         coord_atual: data.coord_atual ?? "",
         coord_futuro: data.coord_futuro ?? "",
         etapa: normalizarEtapa(data.etapa),
         status: data.status ?? "Ativo",
-        data_inicio: normalizarDataInput(data.data_inicio),
-        data_prevista_fim: normalizarDataInput(data.data_prevista_fim),
+        data_inicio: normalizeDateInput(data.data_inicio),
+        data_prevista_fim: normalizeDateInput(data.data_prevista_fim),
         objetivo_geral: data.objetivo_geral ?? "",
-        objetivo_inicio: normalizarDataInput(data.objetivo_inicio),
-        objetivo_fim_previsto: normalizarDataInput(data.objetivo_fim_previsto),
+        objetivo_inicio: normalizeDateInput(data.objetivo_inicio),
+        objetivo_fim_previsto: normalizeDateInput(data.objetivo_fim_previsto),
         observacoes: data.observacoes ?? "",
         objetivos: Array.isArray(data.objetivos) ? data.objetivos.map(normalizarObjetivo) : [],
     };
@@ -108,7 +93,9 @@ export default function FormProcesso({
     }
 
     function atualizarObjetivo(index: number, campo: keyof ObjetivoForm, valor: string) {
-        setObjetivos((atual) => atual.map((objetivo, i) => (i === index ? { ...objetivo, [campo]: valor } : objetivo)));
+        setObjetivos((atual) =>
+            atual.map((objetivo, i) => (i === index ? { ...objetivo, [campo]: valor } : objetivo))
+        );
     }
 
     function removerObjetivo(index: number) {
@@ -135,7 +122,10 @@ export default function FormProcesso({
         event.preventDefault();
         await onSubmit({
             ...form,
-            objetivos: objetivos.map((objetivo, index) => ({ ...objetivo, ordem: index + 1 })),
+            objetivos: objetivos.map((objetivo, index) => ({
+                ...objetivo,
+                ordem: index + 1,
+            })),
         });
     }
 
@@ -150,125 +140,203 @@ export default function FormProcesso({
                         value={form.nome}
                         onChange={handleChange}
                         required
-                        placeholder="Ex.: Projeto Comunit?rio"
+                        placeholder="Ex.: Projeto Comunitário"
                         className="mt-1 w-full rounded border px-3 py-2"
                     />
                 </label>
             </section>
 
             <section className="rounded bg-white p-4 shadow">
-                <h2 className="mb-3 font-semibold">?mbito e Situa??o</h2>
+                <h2 className="mb-3 font-semibold">Âmbito e Situação</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <label>
-                        <span className="text-sm">?mbito</span>
-                        <select name="ambito" value={form.ambito} onChange={handleChange} className="mt-1 w-full rounded border px-3 py-2">
-                            <option>Miss?o</option>
+                        <span className="text-sm">Âmbito</span>
+                        <select
+                            name="ambito"
+                            value={form.ambito}
+                            onChange={handleChange}
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        >
+                            <option>Missão</option>
                             <option>Sustentabilidade</option>
-                            <option>Forma??o</option>
-                            <option>Gest?o</option>
-                            <option>Organiza??o</option>
+                            <option>Formação</option>
+                            <option>Gestão</option>
+                            <option>Organização</option>
                         </select>
                     </label>
 
                     <label>
                         <span className="text-sm">Etapa atual</span>
-                        <select name="etapa" value={form.etapa} onChange={handleChange} className="mt-1 w-full rounded border px-3 py-2">
+                        <select
+                            name="etapa"
+                            value={form.etapa}
+                            onChange={handleChange}
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        >
                             <option>Planejamento</option>
                             <option>Em curso</option>
                             <option>Acompanhamento</option>
-                            <option>Transi\u00e7\u00e3o</option>
-                            <option>Conclu\u00eddo</option>
+                            <option>Transição</option>
+                            <option>Concluído</option>
                         </select>
                     </label>
 
                     <label>
-                        <span className="text-sm">Situa??o</span>
-                        <select name="status" value={form.status} onChange={handleChange} className="mt-1 w-full rounded border px-3 py-2">
+                        <span className="text-sm">Situação</span>
+                        <select
+                            name="status"
+                            value={form.status}
+                            onChange={handleChange}
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        >
                             <option>Ativo</option>
-                            <option>Aten\u00e7\u00e3o</option>
-                            <option>Transi\u00e7\u00e3o</option>
+                            <option>Atenção</option>
+                            <option>Transição</option>
                             <option>Planejado</option>
-                            <option>Conclu\u00eddo</option>
+                            <option>Concluído</option>
                         </select>
                     </label>
                 </div>
             </section>
 
             <section className="rounded bg-white p-4 shadow">
-                <h2 className="mb-3 font-semibold">Coordena??o</h2>
+                <h2 className="mb-3 font-semibold">Coordenação</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <label>
-                        <span className="text-sm">Coordena??o atual</span>
-                        <input name="coord_atual" value={form.coord_atual} onChange={handleChange} placeholder="Nome da refer?ncia atual" className="mt-1 w-full rounded border px-3 py-2" />
+                        <span className="text-sm">Coordenação atual</span>
+                        <input
+                            name="coord_atual"
+                            value={form.coord_atual}
+                            onChange={handleChange}
+                            placeholder="Nome da referência atual"
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        />
                     </label>
                     <label>
                         <span className="text-sm">Futuro coordenador</span>
-                        <input name="coord_futuro" value={form.coord_futuro} onChange={handleChange} placeholder="Se j? houver transi??o prevista" className="mt-1 w-full rounded border px-3 py-2 italic" />
+                        <input
+                            name="coord_futuro"
+                            value={form.coord_futuro}
+                            onChange={handleChange}
+                            placeholder="Se já houver transição prevista"
+                            className="mt-1 w-full rounded border px-3 py-2 italic"
+                        />
                     </label>
                 </div>
             </section>
 
             <section className="rounded bg-white p-4 shadow">
                 <h2 className="mb-3 font-semibold">Equipe</h2>
-                <textarea name="equipe" value={form.equipe} onChange={handleChange} placeholder="Ex.: Pe. Siro, C?ria, Paulinho" className="w-full rounded border px-3 py-2" rows={3} />
+                <textarea
+                    name="equipe"
+                    value={form.equipe}
+                    onChange={handleChange}
+                    placeholder="Ex.: Pe. Siro, Círia, Paulinho"
+                    className="w-full rounded border px-3 py-2"
+                    rows={3}
+                />
             </section>
 
             <section className="rounded bg-white p-4 shadow">
                 <h2 className="mb-3 font-semibold">Ciclo do Processo</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <label>
-                        <span className="text-sm">In?cio do processo</span>
-                        <input type="date" name="data_inicio" value={form.data_inicio} onChange={handleChange} className="mt-1 w-full rounded border px-3 py-2" required />
+                        <span className="text-sm">Início do processo</span>
+                        <input
+                            type="date"
+                            name="data_inicio"
+                            value={form.data_inicio}
+                            onChange={handleChange}
+                            className="mt-1 w-full rounded border px-3 py-2"
+                            required
+                        />
                     </label>
                     <label>
-                        <span className="text-sm">Previs?o de conclus?o</span>
-                        <input type="date" name="data_prevista_fim" value={form.data_prevista_fim} onChange={handleChange} className="mt-1 w-full rounded border px-3 py-2" />
+                        <span className="text-sm">Previsão de conclusão</span>
+                        <input
+                            type="date"
+                            name="data_prevista_fim"
+                            value={form.data_prevista_fim}
+                            onChange={handleChange}
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        />
                     </label>
                 </div>
             </section>
 
             <section className="rounded bg-white p-4 shadow">
                 <h2 className="mb-3 font-semibold">Objetivo Geral</h2>
-                <textarea name="objetivo_geral" value={form.objetivo_geral} onChange={handleChange} placeholder="Descreva o objetivo principal deste processo" className="w-full rounded border px-3 py-2" rows={3} />
+                <textarea
+                    name="objetivo_geral"
+                    value={form.objetivo_geral}
+                    onChange={handleChange}
+                    placeholder="Descreva o objetivo principal deste processo"
+                    className="w-full rounded border px-3 py-2"
+                    rows={3}
+                />
             </section>
 
             <section className="rounded bg-white p-4 shadow">
-                <h2 className="mb-3 font-semibold">Objetivos Intermedi?rios</h2>
+                <h2 className="mb-3 font-semibold">Objetivos Intermediários</h2>
                 {objetivos.length === 0 ? (
                     <p className="mb-4 text-sm text-gray-500">Nenhum objetivo adicionado ainda.</p>
                 ) : (
                     <div className="mb-4 space-y-4">
-                        {objetivos.map((obj, index) => (
-                            <div key={obj.id ?? `novo-${index}`} className="space-y-3 rounded-lg border p-4">
+                        {objetivos.map((objetivo, index) => (
+                            <div key={objetivo.id ?? `novo-${index}`} className="space-y-3 rounded-lg border p-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <p className="text-sm font-medium">Objetivo {index + 1}</p>
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={() => moverObjetivo(index, -1)} className="rounded border px-3 py-1 text-sm">Subir</button>
-                                        <button type="button" onClick={() => moverObjetivo(index, 1)} className="rounded border px-3 py-1 text-sm">Descer</button>
-                                        <button type="button" onClick={() => removerObjetivo(index)} className="rounded border px-3 py-1 text-sm text-red-700">Remover</button>
+                                        <button type="button" onClick={() => moverObjetivo(index, -1)} className="rounded border px-3 py-1 text-sm">
+                                            Subir
+                                        </button>
+                                        <button type="button" onClick={() => moverObjetivo(index, 1)} className="rounded border px-3 py-1 text-sm">
+                                            Descer
+                                        </button>
+                                        <button type="button" onClick={() => removerObjetivo(index)} className="rounded border px-3 py-1 text-sm text-red-700">
+                                            Remover
+                                        </button>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <label className="md:col-span-2">
-                                        <span className="text-sm">T?tulo</span>
-                                        <input value={obj.titulo} onChange={(event) => atualizarObjetivo(index, "titulo", event.target.value)} className="mt-1 w-full rounded border px-3 py-2" />
+                                        <span className="text-sm">Título</span>
+                                        <input
+                                            value={objetivo.titulo}
+                                            onChange={(event) => atualizarObjetivo(index, "titulo", event.target.value)}
+                                            className="mt-1 w-full rounded border px-3 py-2"
+                                        />
                                     </label>
                                     <label>
-                                        <span className="text-sm">In?cio</span>
-                                        <input type="date" value={obj.data_inicio} onChange={(event) => atualizarObjetivo(index, "data_inicio", event.target.value)} className="mt-1 w-full rounded border px-3 py-2" />
+                                        <span className="text-sm">Início</span>
+                                        <input
+                                            type="date"
+                                            value={objetivo.data_inicio}
+                                            onChange={(event) => atualizarObjetivo(index, "data_inicio", event.target.value)}
+                                            className="mt-1 w-full rounded border px-3 py-2"
+                                        />
                                     </label>
                                     <label>
                                         <span className="text-sm">Previsto</span>
-                                        <input type="date" value={obj.data_fim_prevista} onChange={(event) => atualizarObjetivo(index, "data_fim_prevista", event.target.value)} className="mt-1 w-full rounded border px-3 py-2" />
+                                        <input
+                                            type="date"
+                                            value={objetivo.data_fim_prevista}
+                                            onChange={(event) => atualizarObjetivo(index, "data_fim_prevista", event.target.value)}
+                                            className="mt-1 w-full rounded border px-3 py-2"
+                                        />
                                     </label>
                                     <label>
                                         <span className="text-sm">Status</span>
-                                        <select value={obj.status} onChange={(event) => atualizarObjetivo(index, "status", event.target.value)} className="mt-1 w-full rounded border px-3 py-2">
+                                        <select
+                                            value={objetivo.status}
+                                            onChange={(event) => atualizarObjetivo(index, "status", event.target.value)}
+                                            className="mt-1 w-full rounded border px-3 py-2"
+                                        >
                                             <option>Planejado</option>
                                             <option>Em andamento</option>
-                                            <option>Conclu\u00eddo</option>
-                                            <option>Aten\u00e7\u00e3o</option>
+                                            <option>Concluído</option>
+                                            <option>Atenção</option>
                                         </select>
                                     </label>
                                 </div>
@@ -278,22 +346,54 @@ export default function FormProcesso({
                 )}
 
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
-                    <input placeholder="Novo objetivo intermedi?rio" value={novoObjetivo.titulo} onChange={(event) => setNovoObjetivo((atual) => ({ ...atual, titulo: event.target.value }))} className="rounded border px-3 py-2 text-sm md:col-span-2" />
-                    <input type="date" value={novoObjetivo.data_inicio} onChange={(event) => setNovoObjetivo((atual) => ({ ...atual, data_inicio: event.target.value }))} className="rounded border px-3 py-2 text-sm" />
-                    <input type="date" value={novoObjetivo.data_fim_prevista} onChange={(event) => setNovoObjetivo((atual) => ({ ...atual, data_fim_prevista: event.target.value }))} className="rounded border px-3 py-2 text-sm" />
+                    <input
+                        placeholder="Novo objetivo intermediário"
+                        value={novoObjetivo.titulo}
+                        onChange={(event) => setNovoObjetivo((atual) => ({ ...atual, titulo: event.target.value }))}
+                        className="rounded border px-3 py-2 text-sm md:col-span-2"
+                    />
+                    <input
+                        type="date"
+                        value={novoObjetivo.data_inicio}
+                        onChange={(event) => setNovoObjetivo((atual) => ({ ...atual, data_inicio: event.target.value }))}
+                        className="rounded border px-3 py-2 text-sm"
+                    />
+                    <input
+                        type="date"
+                        value={novoObjetivo.data_fim_prevista}
+                        onChange={(event) => setNovoObjetivo((atual) => ({ ...atual, data_fim_prevista: event.target.value }))}
+                        className="rounded border px-3 py-2 text-sm"
+                    />
                 </div>
 
-                <button type="button" onClick={adicionarObjetivo} className="mt-2 rounded border border-[var(--cmv-blue)] px-4 py-2 text-[var(--cmv-blue)]">+ Adicionar objetivo</button>
+                <button
+                    type="button"
+                    onClick={adicionarObjetivo}
+                    className="mt-2 rounded border border-[var(--cmv-blue)] px-4 py-2 text-[var(--cmv-blue)]"
+                >
+                    + Adicionar objetivo
+                </button>
             </section>
 
             <section className="rounded bg-white p-4 shadow">
-                <h2 className="mb-3 font-semibold">Observa??es</h2>
-                <textarea name="observacoes" value={form.observacoes} onChange={handleChange} placeholder="Anota??es, decis?es, pontos de aten??o..." className="w-full rounded border px-3 py-2" rows={4} />
+                <h2 className="mb-3 font-semibold">Observações</h2>
+                <textarea
+                    name="observacoes"
+                    value={form.observacoes}
+                    onChange={handleChange}
+                    placeholder="Anotações, decisões, pontos de atenção..."
+                    className="w-full rounded border px-3 py-2"
+                    rows={4}
+                />
             </section>
 
             <section className="flex gap-3">
-                <button type="submit" className="rounded bg-[var(--cmv-blue)] px-6 py-2 text-white">Salvar Processo</button>
-                <Link href="/processos" className="rounded border px-6 py-2 text-center">Cancelar</Link>
+                <button type="submit" className="rounded bg-[var(--cmv-blue)] px-6 py-2 text-white">
+                    Salvar Processo
+                </button>
+                <Link href="/processos" className="rounded border px-6 py-2 text-center">
+                    Cancelar
+                </Link>
             </section>
         </form>
     );
