@@ -33,7 +33,7 @@ function normalizeLabel(value?: string | null) {
 function mapEtapa(value: ProcessoEtapa) {
     return {
         PLANEJAMENTO: "Planejamento",
-        EXECUCAO: "Execução",
+        EXECUCAO: "Em curso",
         ACOMPANHAMENTO: "Acompanhamento",
         TRANSICAO: "Transição",
         CONCLUIDO: "Concluído",
@@ -63,7 +63,7 @@ function mapEventoTipo(value: EventoTipo) {
 
 function toEtapa(value?: string | null): ProcessoEtapa {
     const normalized = normalizeLabel(value);
-    if (normalized === "execucao") return ProcessoEtapa.EXECUCAO;
+    if (normalized === "execucao" || normalized === "em curso" || normalized === "emcurso") return ProcessoEtapa.EXECUCAO;
     if (normalized === "acompanhamento") return ProcessoEtapa.ACOMPANHAMENTO;
     if (normalized === "transicao") return ProcessoEtapa.TRANSICAO;
     if (normalized === "concluido") return ProcessoEtapa.CONCLUIDO;

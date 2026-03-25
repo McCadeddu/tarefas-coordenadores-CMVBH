@@ -47,7 +47,7 @@ type Props = {
     objetivos: Objetivo[];
 };
 
-const ETAPAS = ["Planejamento", "Execução", "Acompanhamento", "Transição", "Concluído"];
+const ETAPAS = ["Planejamento", "Em curso", "Acompanhamento", "Transi??o", "Conclu?do"];
 
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
     const rad = ((angle - 90) * Math.PI) / 180;
