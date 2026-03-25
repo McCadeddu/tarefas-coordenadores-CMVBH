@@ -91,29 +91,6 @@ export default function ProcessoPage() {
     const [mostrarDetalhes, setMostrarDetalhes] = useState(false);
     const [mostrarModal, setMostrarModal] = useState(false);
 
-    async function carregarTudo() {
-        const [resProcesso, resEventos, resObjetivos, resEncontros] = await Promise.all([
-            fetch(`/api/processos/${slug}`),
-            fetch(`/api/processos/${slug}/eventos`),
-            fetch(`/api/processos/${slug}/objetivos`),
-            fetch(`/api/processos/${slug}/encontros`),
-        ]);
-
-        const [processoJson, eventosJson, objetivosJson, encontrosJson] = await Promise.all([
-            resProcesso.json(),
-            resEventos.json(),
-            resObjetivos.json(),
-            resEncontros.json(),
-        ]);
-
-        startTransition(() => {
-            setProcesso(processoJson);
-            setEventos(eventosJson);
-            setObjetivos(objetivosJson);
-            setEncontros(encontrosJson);
-        });
-    }
-
     useEffect(() => {
         let ativo = true;
 
@@ -267,7 +244,7 @@ export default function ProcessoPage() {
                     <DiscoProcesso processo={processo} objetivos={objetivos} />
                 </section>
 
-                <EncontrosEquipeSection slug={slug} objetivos={objetivos} encontros={encontros} onSaved={carregarTudo} />
+                <EncontrosEquipeSection slug={slug} objetivos={objetivos} encontros={encontros} />
 
                 <section className="mt-6">
                     <h2 className="mb-3 font-semibold">Linha do tempo do processo</h2>
