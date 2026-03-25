@@ -22,14 +22,14 @@ export function normalizeDateInput(value?: string | Date | null) {
 }
 
 export function formatDateForDisplay(value?: string | Date | null, locale = "pt-BR") {
-    if (!value) return "—";
+    if (!value) return "-";
 
     const normalized = typeof value === "string" ? normalizeDateInput(value) : formatDateForInput(value);
-    if (!normalized) return "—";
+    if (!normalized) return "-";
 
     const [year, month, day] = normalized.split("-").map(Number);
     const parsed = new Date(year, (month || 1) - 1, day || 1);
-    if (Number.isNaN(parsed.getTime())) return "—";
+    if (Number.isNaN(parsed.getTime())) return "-";
 
     return parsed.toLocaleDateString(locale, {
         day: "2-digit",

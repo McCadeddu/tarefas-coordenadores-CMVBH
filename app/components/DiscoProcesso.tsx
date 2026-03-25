@@ -95,6 +95,34 @@ function cortarTexto(texto?: string | null, limite = 18) {
     return texto;
 }
 
+function quebrarTexto(texto?: string | null, limite = 14) {
+    if (!texto) return [];
+
+    const palavras = texto.trim().split(/\s+/);
+    const linhas: string[] = [];
+    let atual = "";
+
+    for (const palavra of palavras) {
+        const candidato = atual ? `${atual} ${palavra}` : palavra;
+        if (candidato.length <= limite) {
+            atual = candidato;
+            continue;
+        }
+
+        if (atual) {
+            linhas.push(atual);
+            atual = palavra;
+        } else {
+            linhas.push(cortarTexto(palavra, limite));
+        }
+    }
+
+    if (atual) linhas.push(atual);
+    return linhas.slice(0, 2).map((linha, index, array) => (
+        index === array.length - 1 ? cortarTexto(linha, limite) : linha
+    ));
+}
+
 function dataCurta(valor?: string | null) {
     if (!valor) return "—";
     const data = new Date(valor);
@@ -362,8 +390,12 @@ export default function DiscoProcesso({ processo, objetivos }: Props) {
                     const duracao = diffMeses(objetivo.data_inicio, objetivo.data_fim_prevista) + 1;
                     const start = inicio * grausPorMes;
                     const end = start + Math.max(duracao, 1) * grausPorMes;
+                    const midAngle = start + (end - start) / 2;
                     const raioObjetivo = radiusObjetivosBase - objetivo.lane * laneGap;
-                    const id = `obj-path-${i}`;
+                    const pos = polarToCartesian(center, center, raioObjetivo, midAngle);
+                    const isBottom = midAngle > 90 && midAngle < 270;
+                    const rotation = isBottom ? midAngle + 180 : midAngle;
+                    const linhas = quebrarTexto(objetivo.titulo, 16);
 
                     return (
                         <g key={`${objetivo.titulo}-${i}`}>
@@ -387,11 +419,19 @@ export default function DiscoProcesso({ processo, objetivos }: Props) {
                                 onMouseLeave={() => setHover(null)}
                             />
 
-                            <path id={id} d={arcPath(center, start, end, raioObjetivo - 13)} fill="none" stroke="none" />
-                            <text className="pointer-events-none text-[10px] fill-[var(--cmv-brown)]">
-                                <textPath href={`#${id}`} startOffset="50%" textAnchor="middle">
-                                    {cortarTexto(objetivo.titulo, 20)}
-                                </textPath>
+                            <text
+                                x={pos.x}
+                                y={pos.y}
+                                transform={`rotate(${rotation} ${pos.x} ${pos.y})`}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                className="pointer-events-none fill-[var(--cmv-brown)] text-[9px] font-semibold"
+                            >
+                                {linhas.map((linha, index) => (
+                                    <tspan key={`${objetivo.titulo}-${index}`} x={pos.x} dy={index === 0 ? 0 : 10}>
+                                        {linha}
+                                    </tspan>
+                                ))}
                             </text>
                         </g>
                     );

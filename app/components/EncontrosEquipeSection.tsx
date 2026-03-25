@@ -256,7 +256,7 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
                                         {objetivo.ordem}. {objetivo.titulo}
                                     </p>
                                     <p className="truncate text-[11px] text-emerald-800">
-                                        {objetivo.status || "Planejado"} • {formatDateForDisplay(objetivo.data_inicio)} até {formatDateForDisplay(objetivo.data_fim_prevista)}
+                                        {objetivo.status || "Planejado"} {"\u2022"} {formatDateForDisplay(objetivo.data_inicio)} at\u00e9 {formatDateForDisplay(objetivo.data_fim_prevista)}
                                     </p>
                                 </div>
                             ))}
@@ -267,7 +267,6 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
                             style={{ marginTop: `${objetivosHeight + 16}px`, minHeight: `${encontrosHeight}px` }}
                         >
                             <div className="absolute inset-x-0 top-6 h-[2px] bg-slate-200" />
-
                             {encontrosNoAno.map((encontro) => (
                                 <div
                                     key={encontro.id}
@@ -365,7 +364,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
             if (!response.ok) {
                 const body = await response.json().catch(() => null);
-                throw new Error(body?.error || "Não foi possível salvar o encontro.");
+                throw new Error(body?.error || "N\u00e3o foi poss\u00edvel salvar o encontro.");
             }
 
             setEditingId(null);
@@ -388,7 +387,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--cmv-blue)]">Encontros de Equipe</h2>
                             <p className="text-sm text-slate-500">
-                                Cadastre encontros, pauta, presenças, decisões e relatório para gerar o PDF compartilhável.
+                                Cadastre encontros, pauta, presen\u00e7as, decis\u00f5es e relat\u00f3rio para gerar o PDF compartilh\u00e1vel.
                             </p>
                         </div>
                         {editingId != null && (
@@ -408,7 +407,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <label className="space-y-1 text-sm">
-                            <span className="font-medium text-slate-700">Título do encontro</span>
+                            <span className="font-medium text-slate-700">T\u00edtulo do encontro</span>
                             <input
                                 className="w-full rounded-xl border border-slate-200 px-3 py-2"
                                 value={form.titulo}
@@ -430,7 +429,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <label className="space-y-1 text-sm">
-                            <span className="font-medium text-slate-700">Secretário do encontro</span>
+                            <span className="font-medium text-slate-700">Secret\u00e1rio do encontro</span>
                             <input
                                 className="w-full rounded-xl border border-slate-200 px-3 py-2"
                                 value={form.secretario}
@@ -449,7 +448,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                     <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
                         <div className="flex items-center justify-between gap-3">
-                            <h3 className="font-semibold text-slate-800">Presenças</h3>
+                            <h3 className="font-semibold text-slate-800">Presen\u00e7as</h3>
                             <button
                                 type="button"
                                 onClick={() =>
@@ -460,7 +459,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                                 }
                                 className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
                             >
-                                + Adicionar presença
+                                + Adicionar presen\u00e7a
                             </button>
                         </div>
 
@@ -518,9 +517,9 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                     <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <h3 className="font-semibold text-slate-800">Pauta e relatório</h3>
+                                <h3 className="font-semibold text-slate-800">Pauta e relat\u00f3rio</h3>
                                 <p className="text-xs text-slate-500">
-                                    Cada item vira um bloco do relatório para ser preenchido durante o encontro.
+                                    Cada item vira um bloco do relat\u00f3rio para ser preenchido durante o encontro.
                                 </p>
                             </div>
                             <button
@@ -550,7 +549,10 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                         </div>
 
                         {form.pautas.map((pauta, index) => (
-                            <div key={`pauta-${index}`} className="space-y-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
+                            <div
+                                key={`pauta-${index}`}
+                                className="space-y-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4"
+                            >
                                 <div className="flex items-center justify-between gap-3">
                                     <h4 className="font-semibold text-slate-800">Pauta {index + 1}</h4>
                                     <button
@@ -574,7 +576,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                                 <input
                                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                    placeholder="Título do ponto de pauta"
+                                    placeholder="T\u00edtulo do ponto de pauta"
                                     value={pauta.titulo}
                                     onChange={(event) => {
                                         const titulo = event.target.value;
@@ -589,7 +591,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                                 <textarea
                                     className="min-h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                    placeholder="Relatório do que foi discutido"
+                                    placeholder="Relat\u00f3rio do que foi discutido"
                                     value={pauta.relatorio || ""}
                                     onChange={(event) => {
                                         const relatorio = event.target.value;
@@ -605,7 +607,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                                 <div className="grid gap-3 md:grid-cols-2">
                                     <input
                                         className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                        placeholder="Decisão a ser votada"
+                                        placeholder="Decis\u00e3o a ser votada"
                                         value={pauta.decisao_titulo || ""}
                                         onChange={(event) => {
                                             const decisao_titulo = event.target.value;
@@ -635,9 +637,9 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                                 <div className="grid gap-3 sm:grid-cols-3">
                                     {[
-                                        ["votos_favoraveis", "Votos favoráveis"],
-                                        ["votos_contrarios", "Votos contrários"],
-                                        ["abstencoes", "Abstenções"],
+                                        ["votos_favoraveis", "Votos favor\u00e1veis"],
+                                        ["votos_contrarios", "Votos contr\u00e1rios"],
+                                        ["abstencoes", "Absten\u00e7\u00f5es"],
                                     ].map(([campo, label]) => (
                                         <label key={campo} className="space-y-1 text-sm">
                                             <span className="font-medium text-slate-700">{label}</span>
@@ -690,7 +692,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                                         <h3 className="text-lg font-semibold text-slate-800">{encontro.titulo}</h3>
                                         <p className="text-sm text-slate-500">
                                             {formatDateForDisplay(encontro.data_encontro)}
-                                            {encontro.secretario ? ` • Secretário: ${encontro.secretario}` : ""}
+                                            {encontro.secretario ? ` \u2022 Secret\u00e1rio: ${encontro.secretario}` : ""}
                                         </p>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
@@ -707,7 +709,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                                             rel="noreferrer"
                                             className="rounded-full bg-[var(--cmv-beige)] px-3 py-1 text-xs font-medium text-[var(--cmv-brown)]"
                                         >
-                                            PDF do relatório
+                                            PDF do relat\u00f3rio
                                         </a>
                                     </div>
                                 </div>
@@ -720,7 +722,7 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
 
                                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                                     <div>
-                                        <h4 className="mb-2 text-sm font-semibold text-slate-700">Presenças</h4>
+                                        <h4 className="mb-2 text-sm font-semibold text-slate-700">Presen\u00e7as</h4>
                                         <ul className="space-y-2 text-sm text-slate-600">
                                             {encontro.presencas.map((presenca, index) => (
                                                 <li
@@ -751,9 +753,9 @@ export default function EncontrosEquipeSection({ slug, objetivos, encontros, onS
                                                     )}
                                                     {pauta.decisao_titulo && (
                                                         <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                                                            <p className="font-semibold">Decisão: {pauta.decisao_titulo}</p>
+                                                            <p className="font-semibold">Decis\u00e3o: {pauta.decisao_titulo}</p>
                                                             <p>
-                                                                Favoráveis: {pauta.votos_favoraveis} • Contrários: {pauta.votos_contrarios} • Abstenções: {pauta.abstencoes}
+                                                                Favor\u00e1veis: {pauta.votos_favoraveis} {"\u2022"} Contr\u00e1rios: {pauta.votos_contrarios} {"\u2022"} Absten\u00e7\u00f5es: {pauta.abstencoes}
                                                             </p>
                                                             {pauta.encaminhamento && (
                                                                 <p className="mt-1">Encaminhamento: {pauta.encaminhamento}</p>
