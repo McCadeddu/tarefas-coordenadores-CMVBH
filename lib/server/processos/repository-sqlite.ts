@@ -126,7 +126,7 @@ export class SqliteProcessosRepository implements ProcessosRepository {
 
     async getProcessoBySlug(slug: string): Promise<ProcessoDetalhe | null> {
         const processo = db.prepare(`
-            SELECT id, slug, nome, ambito, equipe, coord_atual, coord_futuro, etapa, etapa_desde, status, data_inicio, data_prevista_fim, data_fim, objetivo_geral, objetivo_inicio, objetivo_fim_previsto, observacoes
+            SELECT id, slug, nome, ambito, equipe, coord_atual, coord_futuro, etapa, etapa_desde, status, data_inicio, data_prevista_fim, data_fim, objetivo_geral, objetivo_inicio, objetivo_fim_previsto, observacoes, atualizado_em
             FROM processos
             WHERE slug = ?
         `).get(slug) as ProcessoDetalhe | undefined;
@@ -230,13 +230,17 @@ export class SqliteProcessosRepository implements ProcessosRepository {
     async updateProcesso(slug: string, input: ProcessoInput): Promise<RepositoryMutationResult> {
         const now = new Date().toISOString();
         const atual = db.prepare(`
-            SELECT slug, nome, ambito, equipe, coord_atual, coord_futuro, etapa, etapa_desde, status, data_inicio, data_prevista_fim, objetivo_geral, objetivo_inicio, objetivo_fim_previsto, observacoes
+            SELECT slug, nome, ambito, equipe, coord_atual, coord_futuro, etapa, etapa_desde, status, data_inicio, data_prevista_fim, objetivo_geral, objetivo_inicio, objetivo_fim_previsto, observacoes, atualizado_em
             FROM processos
             WHERE slug = ?
         `).get(slug) as Record<string, string | null> | undefined;
 
         if (!atual) {
             return { ok: false, notFound: true };
+        }
+
+        if (input.atualizado_em && atual.atualizado_em && input.atualizado_em !== atual.atualizado_em) {
+            return { ok: false, conflict: true };
         }
 
         const objetivosRecebidos = normalizarObjetivos(input.objetivos);
@@ -449,9 +453,17 @@ export class SqliteProcessosRepository implements ProcessosRepository {
 
     async updateEncontro(slug: string, id: string, input: EncontroEquipeInput): Promise<RepositoryMutationResult> {
         const now = new Date().toISOString();
-        const encontro = db.prepare(`SELECT id FROM processos_encontros WHERE processo_slug = ? AND id = ?`).get(slug, id) as { id: number } | undefined;
+        const encontro = db.prepare(`
+            SELECT id, atualizado_em
+            FROM processos_encontros
+            WHERE processo_slug = ? AND id = ?
+        `).get(slug, id) as { id: number; atualizado_em: string | null } | undefined;
         if (!encontro) {
             return { ok: false, notFound: true };
+        }
+
+        if (input.atualizado_em && encontro.atualizado_em && input.atualizado_em !== encontro.atualizado_em) {
+            return { ok: false, conflict: true };
         }
 
         const presencas = normalizarPresencas(input.presencas);

@@ -35,6 +35,13 @@ export async function PUT(req: Request, { params }: Context) {
             return NextResponse.json({ error: "Encontro não encontrado" }, { status: 404 });
         }
 
+        if (result.conflict) {
+            return NextResponse.json(
+                { error: "Este encontro foi alterado por outra pessoa. Reabra o formulário antes de salvar novamente." },
+                { status: 409 }
+            );
+        }
+
         return NextResponse.json(result);
     } catch (error) {
         console.error("ERRO PUT /api/processos/[slug]/encontros/[id]:", error);

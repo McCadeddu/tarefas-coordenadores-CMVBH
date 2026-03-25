@@ -262,6 +262,7 @@ export class PrismaProcessosRepository implements ProcessosRepository {
             objetivo_inicio: iso(processo.objetivoInicio),
             objetivo_fim_previsto: iso(processo.objetivoFimPrevisto),
             observacoes: processo.observacoes,
+            atualizado_em: processo.updatedAt.toISOString(),
         };
     }
 
@@ -375,6 +376,10 @@ export class PrismaProcessosRepository implements ProcessosRepository {
         const atual = await prisma.processo.findUnique({ where: { slug }, include: { objetivos: true } });
         if (!atual) {
             return { ok: false, notFound: true };
+        }
+
+        if (input.atualizado_em && input.atualizado_em !== atual.updatedAt.toISOString()) {
+            return { ok: false, conflict: true };
         }
 
         const objetivosRecebidos = normalizarObjetivos(input.objetivos);
@@ -622,10 +627,14 @@ export class PrismaProcessosRepository implements ProcessosRepository {
     async updateEncontro(slug: string, id: string, input: EncontroEquipeInput): Promise<RepositoryMutationResult> {
         const encontro = await prisma.processoEncontro.findFirst({
             where: { id, processo: { slug } },
-            select: { id: true },
+            select: { id: true, updatedAt: true },
         });
         if (!encontro) {
             return { ok: false, notFound: true };
+        }
+
+        if (input.atualizado_em && input.atualizado_em !== encontro.updatedAt.toISOString()) {
+            return { ok: false, conflict: true };
         }
 
         const presencas = normalizarPresencas(input.presencas);

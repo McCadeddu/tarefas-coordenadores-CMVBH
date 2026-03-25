@@ -19,6 +19,7 @@ export type ProcessoDetalhe = ProcessoListItem & {
     objetivo_inicio: string | null;
     objetivo_fim_previsto: string | null;
     observacoes: string | null;
+    atualizado_em?: string | null;
 };
 
 export type ObjetivoItem = {
@@ -96,6 +97,7 @@ export type ProcessoInput = {
     objetivo_inicio?: string | null;
     objetivo_fim_previsto?: string | null;
     observacoes?: string | null;
+    atualizado_em?: string | null;
     objetivos?: ObjetivoInput[];
 };
 
@@ -122,6 +124,7 @@ export type EncontroEquipeInput = {
     data_encontro?: string;
     pauta_geral?: string | null;
     secretario?: string | null;
+    atualizado_em?: string | null;
     presencas?: EncontroPresencaInput[];
     pautas?: EncontroPautaInput[];
 };
@@ -129,6 +132,7 @@ export type EncontroEquipeInput = {
 export type RepositoryMutationResult = {
     ok: boolean;
     notFound?: boolean;
+    conflict?: boolean;
     id?: number | string;
 };
 

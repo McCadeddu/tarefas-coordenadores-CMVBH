@@ -22,10 +22,7 @@ export async function GET(_req: Request, { params }: Context) {
         return NextResponse.json(processo);
     } catch (error) {
         console.error("ERRO /api/processos/[slug]:", error);
-        return NextResponse.json(
-            { error: "Erro interno", details: String(error) },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Erro interno", details: String(error) }, { status: 500 });
     }
 }
 
@@ -38,6 +35,13 @@ export async function PUT(req: Request, { params }: Context) {
 
         if (result.notFound) {
             return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
+        }
+
+        if (result.conflict) {
+            return NextResponse.json(
+                { error: "Este processo foi alterado por outra pessoa. Recarregue a página antes de salvar novamente." },
+                { status: 409 }
+            );
         }
 
         return NextResponse.json(result);

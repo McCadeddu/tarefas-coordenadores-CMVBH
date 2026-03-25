@@ -11,6 +11,7 @@ type Encontro = {
     data_encontro: string;
     pauta_geral: string | null;
     secretario: string | null;
+    atualizado_em?: string | null;
     presencas: Array<{ id?: number | string; nome: string; presente: boolean }>;
     pautas: Array<{
         id?: number | string;

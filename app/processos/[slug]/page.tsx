@@ -64,6 +64,7 @@ type Processo = {
     objetivo_inicio: string | null;
     objetivo_fim_previsto: string | null;
     observacoes: string | null;
+    atualizado_em?: string | null;
 };
 
 function textoEvento(evento: Evento) {

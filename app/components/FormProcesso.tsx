@@ -28,6 +28,7 @@ type ProcessoForm = {
     objetivo_inicio?: string;
     objetivo_fim_previsto?: string;
     observacoes: string;
+    atualizado_em?: string;
     objetivos: ObjetivoForm[];
 };
 
@@ -63,6 +64,7 @@ function normalizarForm(data: Partial<ProcessoForm>): ProcessoForm {
         objetivo_inicio: normalizeDateInput(data.objetivo_inicio),
         objetivo_fim_previsto: normalizeDateInput(data.objetivo_fim_previsto),
         observacoes: data.observacoes ?? "",
+        atualizado_em: data.atualizado_em ?? "",
         objetivos: Array.isArray(data.objetivos) ? data.objetivos.map(normalizarObjetivo) : [],
     };
 }

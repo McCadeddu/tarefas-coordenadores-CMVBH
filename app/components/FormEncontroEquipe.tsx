@@ -29,6 +29,7 @@ type Encontro = {
     data_encontro: string;
     pauta_geral: string | null;
     secretario: string | null;
+    atualizado_em?: string | null;
     presencas: EncontroPresenca[];
     pautas: EncontroPauta[];
 };
@@ -38,6 +39,7 @@ type FormState = {
     data_encontro: string;
     pauta_geral: string;
     secretario: string;
+    atualizado_em?: string;
     presencas: EncontroPresenca[];
     pautas: EncontroPauta[];
 };
@@ -48,6 +50,7 @@ function blankForm(): FormState {
         data_encontro: formatDateForInput(new Date()),
         pauta_geral: "",
         secretario: "",
+        atualizado_em: "",
         presencas: [{ nome: "", presente: true }],
         pautas: [
             {
@@ -72,6 +75,7 @@ function normalizeForm(encontro?: Encontro | null): FormState {
         data_encontro: normalizeDateInput(encontro.data_encontro),
         pauta_geral: encontro.pauta_geral || "",
         secretario: encontro.secretario || "",
+        atualizado_em: encontro.atualizado_em || "",
         presencas:
             encontro.presencas.length > 0
                 ? encontro.presencas.map((presenca) => ({ ...presenca }))

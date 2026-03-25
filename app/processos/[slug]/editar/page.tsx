@@ -21,6 +21,7 @@ type ProcessoEditavel = {
     objetivo_inicio: string;
     objetivo_fim_previsto: string;
     observacoes: string;
+    atualizado_em?: string;
     objetivos: Array<{
         id?: number;
         ordem?: number;
