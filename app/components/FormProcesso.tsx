@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 type ObjetivoForm = {
-    id?: number;
+    id?: number | string;
     ordem?: number;
     titulo: string;
     data_inicio: string;
@@ -29,13 +29,20 @@ type ProcessoForm = {
     objetivos: ObjetivoForm[];
 };
 
+function normalizarDataInput(valor?: string | null) {
+    if (!valor) return "";
+    const data = new Date(valor);
+    if (Number.isNaN(data.getTime())) return String(valor).slice(0, 10);
+    return data.toISOString().slice(0, 10);
+}
+
 function normalizarObjetivo(objetivo: Partial<ObjetivoForm>): ObjetivoForm {
     return {
         id: objetivo.id,
         ordem: objetivo.ordem,
         titulo: objetivo.titulo ?? "",
-        data_inicio: objetivo.data_inicio ?? "",
-        data_fim_prevista: objetivo.data_fim_prevista ?? "",
+        data_inicio: normalizarDataInput(objetivo.data_inicio),
+        data_fim_prevista: normalizarDataInput(objetivo.data_fim_prevista),
         status: objetivo.status ?? "Planejado",
     };
 }
@@ -49,11 +56,11 @@ function normalizarForm(data: Partial<ProcessoForm>): ProcessoForm {
         coord_futuro: data.coord_futuro ?? "",
         etapa: data.etapa ?? "Planejamento",
         status: data.status ?? "Ativo",
-        data_inicio: data.data_inicio ?? "",
-        data_prevista_fim: data.data_prevista_fim ?? "",
+        data_inicio: normalizarDataInput(data.data_inicio),
+        data_prevista_fim: normalizarDataInput(data.data_prevista_fim),
         objetivo_geral: data.objetivo_geral ?? "",
-        objetivo_inicio: data.objetivo_inicio ?? "",
-        objetivo_fim_previsto: data.objetivo_fim_previsto ?? "",
+        objetivo_inicio: normalizarDataInput(data.objetivo_inicio),
+        objetivo_fim_previsto: normalizarDataInput(data.objetivo_fim_previsto),
         observacoes: data.observacoes ?? "",
         objetivos: Array.isArray(data.objetivos)
             ? data.objetivos.map(normalizarObjetivo)

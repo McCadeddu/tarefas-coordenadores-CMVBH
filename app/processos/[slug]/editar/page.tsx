@@ -82,7 +82,8 @@ export default function EditarProcessoPage() {
                     });
 
                     if (!res.ok) {
-                        alert("Erro ao atualizar");
+                        const body = await res.json().catch(() => null);
+                        alert(body?.error || "Erro ao atualizar");
                         return;
                     }
 

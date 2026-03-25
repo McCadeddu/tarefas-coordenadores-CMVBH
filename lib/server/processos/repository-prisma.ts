@@ -19,6 +19,15 @@ function parseDate(value?: string | null) {
     return value ? new Date(value) : null;
 }
 
+function normalizeLabel(value?: string | null) {
+    return (value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\?/g, "")
+        .trim()
+        .toLowerCase();
+}
+
 function mapEtapa(value: ProcessoEtapa) {
     return {
         PLANEJAMENTO: "Planejamento",
@@ -51,32 +60,35 @@ function mapEventoTipo(value: EventoTipo) {
 }
 
 function toEtapa(value?: string | null): ProcessoEtapa {
+    const normalized = normalizeLabel(value || "Planejamento");
     return {
-        "Planejamento": ProcessoEtapa.PLANEJAMENTO,
-        "Execu??o": ProcessoEtapa.EXECUCAO,
-        "Acompanhamento": ProcessoEtapa.ACOMPANHAMENTO,
-        "Transi??o": ProcessoEtapa.TRANSICAO,
-        "Conclu?do": ProcessoEtapa.CONCLUIDO,
-    }[value || "Planejamento"] ?? ProcessoEtapa.PLANEJAMENTO;
+        planejamento: ProcessoEtapa.PLANEJAMENTO,
+        execucao: ProcessoEtapa.EXECUCAO,
+        acompanhamento: ProcessoEtapa.ACOMPANHAMENTO,
+        transicao: ProcessoEtapa.TRANSICAO,
+        concluido: ProcessoEtapa.CONCLUIDO,
+    }[normalized] ?? ProcessoEtapa.PLANEJAMENTO;
 }
 
 function toProcessoStatus(value?: string | null): ProcessoStatus {
+    const normalized = normalizeLabel(value || "Ativo");
     return {
-        "Ativo": ProcessoStatus.ATIVO,
-        "Aten??o": ProcessoStatus.ATENCAO,
-        "Transi??o": ProcessoStatus.TRANSICAO,
-        "Planejado": ProcessoStatus.PLANEJADO,
-        "Conclu?do": ProcessoStatus.CONCLUIDO,
-    }[value || "Ativo"] ?? ProcessoStatus.ATIVO;
+        ativo: ProcessoStatus.ATIVO,
+        atencao: ProcessoStatus.ATENCAO,
+        transicao: ProcessoStatus.TRANSICAO,
+        planejado: ProcessoStatus.PLANEJADO,
+        concluido: ProcessoStatus.CONCLUIDO,
+    }[normalized] ?? ProcessoStatus.ATIVO;
 }
 
 function toObjetivoStatus(value?: string | null): ObjetivoStatus {
+    const normalized = normalizeLabel(value || "Planejado");
     return {
-        "Planejado": ObjetivoStatus.PLANEJADO,
-        "Em andamento": ObjetivoStatus.EM_ANDAMENTO,
-        "Aten??o": ObjetivoStatus.ATENCAO,
-        "Conclu?do": ObjetivoStatus.CONCLUIDO,
-    }[value || "Planejado"] ?? ObjetivoStatus.PLANEJADO;
+        planejado: ObjetivoStatus.PLANEJADO,
+        "em andamento": ObjetivoStatus.EM_ANDAMENTO,
+        atencao: ObjetivoStatus.ATENCAO,
+        concluido: ObjetivoStatus.CONCLUIDO,
+    }[normalized] ?? ObjetivoStatus.PLANEJADO;
 }
 
 function normalizarObjetivos(objetivos: ProcessoInput["objetivos"]): Required<ObjetivoInput>[] {
