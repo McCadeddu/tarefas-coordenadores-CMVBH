@@ -455,6 +455,14 @@ export default function EncontrosEquipeSection({
                                         >
                                             PDF do relatório
                                         </a>
+                                        <a
+                                            href={`/api/processos/${slug}/encontros/${encontro.id}/word`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700"
+                                        >
+                                            Word do relatório
+                                        </a>
                                     </div>
                                 </div>
 

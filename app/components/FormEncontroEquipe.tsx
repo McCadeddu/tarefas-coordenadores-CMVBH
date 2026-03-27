@@ -562,14 +562,24 @@ export default function FormEncontroEquipe({
                     Voltar ao processo
                 </button>
                 {encontro && (
-                    <a
-                        href={`/api/processos/${slug}/encontros/${encontro.id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-800"
-                    >
-                        PDF do relatório
-                    </a>
+                    <>
+                        <a
+                            href={`/api/processos/${slug}/encontros/${encontro.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-800"
+                        >
+                            PDF do relatório
+                        </a>
+                        <a
+                            href={`/api/processos/${slug}/encontros/${encontro.id}/word`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+                        >
+                            Word do relatório
+                        </a>
+                    </>
                 )}
             </div>
         </form>
