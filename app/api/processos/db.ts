@@ -134,4 +134,21 @@ db.prepare(`
   )
 `).run();
 
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS processos_encontros_presenca_online (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    processo_slug TEXT NOT NULL,
+    encontro_id TEXT NOT NULL,
+    sessao_id TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    email TEXT,
+    ultimo_ping TEXT NOT NULL
+  )
+`).run();
+
+db.prepare(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_encontros_presenca_online_sessao
+  ON processos_encontros_presenca_online (processo_slug, encontro_id, sessao_id)
+`).run();
+
 export default db;

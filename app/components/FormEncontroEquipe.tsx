@@ -50,6 +50,12 @@ type SaveResponse = {
     encontro?: Encontro | null;
 };
 
+type PresenceItem = {
+    nome: string;
+    email: string | null;
+    ultimo_ping: string;
+};
+
 function blankForm(): FormState {
     return {
         titulo: "",
@@ -128,6 +134,7 @@ export default function FormEncontroEquipe({
     const [error, setError] = useState<string | null>(null);
     const [saveNotice, setSaveNotice] = useState<string | null>(null);
     const [collaborationNotice, setCollaborationNotice] = useState<string | null>(null);
+    const [presencasOnline, setPresencasOnline] = useState<PresenceItem[]>([]);
     const lastSavedSnapshotRef = useRef(snapshotForm(normalizeForm(encontro)));
     const firstAutosavePassRef = useRef(true);
     const saveNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -313,6 +320,45 @@ export default function FormEncontroEquipe({
         return () => clearInterval(interval);
     }, [encontro, slug]);
 
+    useEffect(() => {
+        if (!encontro) return;
+
+        const encontroId = encontro.id;
+        const storageKey = `encontro-presenca-${slug}-${encontroId}`;
+        const sessionId = window.sessionStorage.getItem(storageKey) || crypto.randomUUID();
+        window.sessionStorage.setItem(storageKey, sessionId);
+
+        async function heartbeat() {
+            try {
+                const response = await fetch(`/api/processos/${slug}/encontros/${encontroId}/presenca`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sessao_id: sessionId }),
+                });
+                if (!response.ok) return;
+                const body = await response.json().catch(() => null);
+                setPresencasOnline(Array.isArray(body?.presencas) ? body.presencas : []);
+            } catch {
+                // Mantemos a edição local mesmo se a presença falhar.
+            }
+        }
+
+        void heartbeat();
+        const interval = setInterval(() => {
+            void heartbeat();
+        }, 15000);
+
+        return () => {
+            clearInterval(interval);
+            void fetch(`/api/processos/${slug}/encontros/${encontroId}/presenca`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sessao_id: sessionId }),
+                keepalive: true,
+            }).catch(() => null);
+        };
+    }, [encontro, slug]);
+
     async function salvarEncontro(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         await persistForm("manual");
@@ -327,13 +373,20 @@ export default function FormEncontroEquipe({
                     reaberto e exportado em Word.
                 </p>
                 {encontro && (
-                    <p className="mt-2 text-xs text-slate-500">
-                        {autosaving
-                            ? "Salvando automaticamente..."
-                            : hasUnsavedChanges
-                                ? "Há alterações ainda não salvas."
-                                : "Autosave ativo durante a edição."}
-                    </p>
+                    <div className="mt-2 space-y-2">
+                        <p className="text-xs text-slate-500">
+                            {autosaving
+                                ? "Salvando automaticamente..."
+                                : hasUnsavedChanges
+                                    ? "Há alterações ainda não salvas."
+                                    : "Autosave ativo durante a edição."}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                            {presencasOnline.length > 1
+                                ? `Agora neste encontro: ${[...new Set(presencasOnline.map((item) => item.nome))].join(", ")}`
+                                : "Nenhuma outra pessoa com este encontro aberto agora."}
+                        </p>
+                    </div>
                 )}
             </div>
 
