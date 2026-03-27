@@ -127,18 +127,26 @@ export default function FormEncontroEquipe({
     const [autosaving, setAutosaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saveNotice, setSaveNotice] = useState<string | null>(null);
+    const [collaborationNotice, setCollaborationNotice] = useState<string | null>(null);
     const lastSavedSnapshotRef = useRef(snapshotForm(normalizeForm(encontro)));
     const firstAutosavePassRef = useRef(true);
     const saveNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveInFlightRef = useRef(false);
+    const formRef = useRef(form);
+
+    useEffect(() => {
+        formRef.current = form;
+    }, [form]);
 
     useEffect(() => {
         const nextForm = normalizeForm(encontro);
         setForm(nextForm);
+        formRef.current = nextForm;
         lastSavedSnapshotRef.current = snapshotForm(nextForm);
         firstAutosavePassRef.current = true;
         setSaveNotice(null);
         setError(null);
+        setCollaborationNotice(null);
     }, [encontro]);
 
     useEffect(() => {
@@ -161,7 +169,9 @@ export default function FormEncontroEquipe({
     }
 
     async function persistForm(mode: "manual" | "autosave") {
-        const payload = buildPayload(form);
+        const sourceForm = formRef.current;
+        const payload = buildPayload(sourceForm);
+        const requestSnapshot = JSON.stringify(payload);
         const isUpdate = Boolean(encontro);
 
         if (saveInFlightRef.current) {
@@ -204,12 +214,24 @@ export default function FormEncontroEquipe({
             const encontroSalvo = body?.encontro ?? null;
             const idSalvo = body?.id ?? encontroSalvo?.id;
 
+            lastSavedSnapshotRef.current = requestSnapshot;
+
             if (encontroSalvo) {
                 const normalized = normalizeForm(encontroSalvo);
-                setForm(normalized);
-                lastSavedSnapshotRef.current = snapshotForm(normalized);
-            } else {
-                lastSavedSnapshotRef.current = currentSnapshot;
+                const latestSnapshot = snapshotForm(formRef.current);
+                const sameDraft = latestSnapshot === requestSnapshot;
+
+                if (sameDraft || mode === "manual") {
+                    setForm(normalized);
+                    formRef.current = normalized;
+                    lastSavedSnapshotRef.current = snapshotForm(normalized);
+                } else {
+                    setForm((current) => ({ ...current, atualizado_em: normalized.atualizado_em || current.atualizado_em }));
+                    formRef.current = {
+                        ...formRef.current,
+                        atualizado_em: normalized.atualizado_em || formRef.current.atualizado_em,
+                    };
+                }
             }
 
             if (!isUpdate && idSalvo != null) {
@@ -248,10 +270,48 @@ export default function FormEncontroEquipe({
         const timer = setTimeout(() => {
             if (saveInFlightRef.current) return;
             void persistForm("autosave");
-        }, 1500);
+        }, 1800);
 
         return () => clearTimeout(timer);
     }, [currentSnapshot, encontro, form.data_encontro, form.titulo, hasUnsavedChanges]);
+
+    useEffect(() => {
+        if (!encontro) return;
+
+        const interval = setInterval(async () => {
+            if (saveInFlightRef.current) return;
+
+            try {
+                const response = await fetch(`/api/processos/${slug}/encontros/${encontro.id}`, {
+                    cache: "no-store",
+                });
+                if (!response.ok) return;
+
+                const remoto = (await response.json()) as Encontro;
+                const remoteTimestamp = remoto.atualizado_em || "";
+                const localTimestamp = formRef.current.atualizado_em || "";
+
+                if (!remoteTimestamp || remoteTimestamp === localTimestamp) {
+                    return;
+                }
+
+                if (snapshotForm(formRef.current) !== lastSavedSnapshotRef.current) {
+                    setCollaborationNotice("Outra pessoa atualizou este encontro. Termine sua edição e salve de novo para evitar conflito.");
+                    return;
+                }
+
+                const normalized = normalizeForm(remoto);
+                setForm(normalized);
+                formRef.current = normalized;
+                lastSavedSnapshotRef.current = snapshotForm(normalized);
+                setCollaborationNotice("O encontro foi atualizado por outra pessoa e a tela foi sincronizada.");
+            } catch {
+                // Mantemos a edição local mesmo se a checagem falhar.
+            }
+        }, 12000);
+
+        return () => clearInterval(interval);
+    }, [encontro, slug]);
 
     async function salvarEncontro(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -264,7 +324,7 @@ export default function FormEncontroEquipe({
                 <h1 className="text-xl font-bold text-[var(--cmv-blue)]">{title}</h1>
                 <p className="mt-1 text-sm text-slate-500">
                     Preencha data, pauta, presenças, relatório e decisões. Depois o encontro pode ser
-                    reaberto e exportado em PDF.
+                    reaberto e exportado em Word.
                 </p>
                 {encontro && (
                     <p className="mt-2 text-xs text-slate-500">
@@ -537,11 +597,14 @@ export default function FormEncontroEquipe({
                 ))}
             </div>
 
-            {(error || saveNotice) && (
+            {(error || saveNotice || collaborationNotice) && (
                 <div className="space-y-2">
                     {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
                     {saveNotice && (
                         <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{saveNotice}</p>
+                    )}
+                    {collaborationNotice && (
+                        <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">{collaborationNotice}</p>
                     )}
                 </div>
             )}
@@ -562,24 +625,14 @@ export default function FormEncontroEquipe({
                     Voltar ao processo
                 </button>
                 {encontro && (
-                    <>
-                        <a
-                            href={`/api/processos/${slug}/encontros/${encontro.id}/pdf`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-800"
-                        >
-                            PDF do relatório
-                        </a>
-                        <a
-                            href={`/api/processos/${slug}/encontros/${encontro.id}/word`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
-                        >
-                            Word do relatório
-                        </a>
-                    </>
+                    <a
+                        href={`/api/processos/${slug}/encontros/${encontro.id}/word`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+                    >
+                        Word do relatório
+                    </a>
                 )}
             </div>
         </form>

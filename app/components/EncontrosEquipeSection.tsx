@@ -410,7 +410,7 @@ export default function EncontrosEquipeSection({
                         <h2 className="text-lg font-semibold text-[var(--cmv-blue)]">Encontros de Equipe</h2>
                         <p className="text-sm text-slate-500">
                             Cadastre encontros em uma página própria, reabra depois para completar o relatório
-                            e exporte em PDF.
+                            e exporte em Word.
                         </p>
                     </div>
                     <Link
@@ -448,18 +448,10 @@ export default function EncontrosEquipeSection({
                                             Reabrir
                                         </Link>
                                         <a
-                                            href={`/api/processos/${slug}/encontros/${encontro.id}/pdf`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="rounded-full bg-[var(--cmv-beige)] px-3 py-1 text-xs font-medium text-[var(--cmv-brown)]"
-                                        >
-                                            PDF do relatório
-                                        </a>
-                                        <a
                                             href={`/api/processos/${slug}/encontros/${encontro.id}/word`}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700"
+                                            className="rounded-full bg-[var(--cmv-beige)] px-3 py-1 text-xs font-medium text-[var(--cmv-brown)]"
                                         >
                                             Word do relatório
                                         </a>
