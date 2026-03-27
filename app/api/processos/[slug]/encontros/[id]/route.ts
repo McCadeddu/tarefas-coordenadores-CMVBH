@@ -42,7 +42,8 @@ export async function PUT(req: Request, { params }: Context) {
             );
         }
 
-        return NextResponse.json(result);
+        const encontro = await repository.getEncontroById(slug, id);
+        return NextResponse.json({ ...result, encontro });
     } catch (error) {
         console.error("ERRO PUT /api/processos/[slug]/encontros/[id]:", error);
         return NextResponse.json({ error: "Erro ao atualizar encontro", details: String(error) }, { status: 500 });

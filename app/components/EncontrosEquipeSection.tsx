@@ -4,6 +4,15 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { formatDateForDisplay } from "@/lib/shared/date";
 
+type ProcessoResumo = {
+    nome: string;
+    etapa: string | null;
+    status: string | null;
+    equipe: string | null;
+    coord_atual: string | null;
+    coord_futuro: string | null;
+};
+
 type Objetivo = {
     id: number | string;
     ordem: number;
@@ -75,6 +84,52 @@ function porcentagemNoAno(data: Date, ano: number) {
     return ((data.getTime() - inicio) / (fim - inicio)) * 100;
 }
 
+function corStatusObjetivo(status: string | null | undefined) {
+    if (status === "Concluído") {
+        return {
+            bg: "rgba(134, 239, 172, 0.9)",
+            border: "#22c55e",
+            text: "#14532d",
+        };
+    }
+    if (status === "Atenção") {
+        return {
+            bg: "rgba(253, 230, 138, 0.95)",
+            border: "#eab308",
+            text: "#854d0e",
+        };
+    }
+    if (status === "Transição") {
+        return {
+            bg: "rgba(253, 186, 116, 0.95)",
+            border: "#f97316",
+            text: "#9a3412",
+        };
+    }
+    if (status === "Em andamento") {
+        return {
+            bg: "rgba(125, 211, 252, 0.95)",
+            border: "#0ea5e9",
+            text: "#0c4a6e",
+        };
+    }
+
+    return {
+        bg: "rgba(165, 243, 252, 0.95)",
+        border: "#06b6d4",
+        text: "#164e63",
+    };
+}
+
+function corStatusProcesso(status: string | null | undefined) {
+    if (status === "Concluído") return "#2563eb";
+    if (status === "Ativo") return "#16a34a";
+    if (status === "Atenção") return "#d97706";
+    if (status === "Transição") return "#ea580c";
+    if (status === "Planejado") return "#64748b";
+    return "#0f766e";
+}
+
 function calcularObjetivosTimeline(objetivos: Objetivo[], anoAtual: number) {
     const objetivosNoAno = objetivos
         .map((objetivo) => {
@@ -93,7 +148,7 @@ function calcularObjetivosTimeline(objetivos: Objetivo[], anoAtual: number) {
                 left: porcentagemNoAno(inicioClamped, anoAtual),
                 width: Math.max(
                     porcentagemNoAno(fimClamped, anoAtual) - porcentagemNoAno(inicioClamped, anoAtual),
-                    3
+                    8
                 ),
                 lane: 0,
                 startMs: inicioClamped.getTime(),
@@ -145,7 +200,15 @@ function calcularEncontrosTimeline(encontros: Encontro[], anoAtual: number) {
     return encontrosNoAno;
 }
 
-function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encontros: Encontro[] }) {
+function TimelineAnual({
+    processo,
+    objetivos,
+    encontros,
+}: {
+    processo: ProcessoResumo;
+    objetivos: Objetivo[];
+    encontros: Encontro[];
+}) {
     const anoAtual = new Date().getFullYear();
     const meses = Array.from({ length: 12 }, (_, index) =>
         new Date(anoAtual, index, 1).toLocaleDateString("pt-BR", { month: "short" })
@@ -153,9 +216,13 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
 
     const objetivosNoAno = useMemo(() => calcularObjetivosTimeline(objetivos, anoAtual), [objetivos, anoAtual]);
     const encontrosNoAno = useMemo(() => calcularEncontrosTimeline(encontros, anoAtual), [encontros, anoAtual]);
+    const equipeLista = useMemo(
+        () => (processo.equipe || "").split(",").map((item) => item.trim()).filter(Boolean),
+        [processo.equipe]
+    );
 
     const objetivosHeight =
-        Math.max(objetivosNoAno.reduce((max, objetivo) => Math.max(max, objetivo.lane), 0), 0) * 42 + 52;
+        Math.max(objetivosNoAno.reduce((max, objetivo) => Math.max(max, objetivo.lane), 0), 0) * 72 + 76;
     const encontrosHeight =
         Math.max(encontrosNoAno.reduce((max, encontro) => Math.max(max, encontro.lane), 0), 0) * 86 + 76;
 
@@ -165,7 +232,7 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
                 <div>
                     <h3 className="text-base font-semibold text-slate-800">Linha do tempo anual</h3>
                     <p className="text-xs text-slate-500">
-                        Ano em curso, objetivos ativos e encontros programados.
+                        Ano em curso com o painel do processo, os objetivos ativos e os encontros programados.
                     </p>
                 </div>
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
@@ -189,41 +256,93 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
                                 <div
                                     key={`${mes}-${index}`}
                                     className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60"
-                                    style={{ height: `${objetivosHeight}px` }}
+                                    style={{ height: `${objetivosHeight + encontrosHeight + 184}px` }}
                                 />
                             ))}
                         </div>
 
-                        <div className="pointer-events-none absolute inset-x-4 top-6" style={{ height: `${objetivosHeight}px` }}>
+                        <div className="absolute inset-x-4 top-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+                            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                        Painel do processo no ano
+                                    </p>
+                                    <h4 className="text-sm font-semibold text-slate-800">{processo.nome}</h4>
+                                    <p className="text-xs text-slate-500">
+                                        {processo.etapa || "Sem etapa"} • {processo.status || "Sem status"}
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                    <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">
+                                        Equipe: {equipeLista.length || 0}
+                                    </span>
+                                    <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">
+                                        Coordenação atual: {processo.coord_atual || "Não definida"}
+                                    </span>
+                                    <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">
+                                        Coordenação futura: {processo.coord_futuro || "Sem transição"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="relative h-14 rounded-full bg-white px-4 py-3 shadow-inner">
+                                <div
+                                    className="absolute left-4 right-4 top-1/2 h-3 -translate-y-1/2 rounded-full opacity-85"
+                                    style={{ backgroundColor: corStatusProcesso(processo.status) }}
+                                />
+                                <div className="relative flex h-full items-center justify-between text-[11px] font-medium text-slate-700">
+                                    <span className="rounded-full bg-white/95 px-2 py-1 shadow">Início do ano</span>
+                                    <span className="rounded-full bg-white/95 px-2 py-1 shadow">
+                                        Equipe: {equipeLista.length || 0} pessoa(s)
+                                    </span>
+                                    <span className="rounded-full bg-white/95 px-2 py-1 shadow">Fim do ano</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className="pointer-events-none absolute inset-x-4"
+                            style={{ top: "148px", height: `${objetivosHeight}px` }}
+                        >
                             {objetivosNoAno.length === 0 && (
                                 <div className="flex h-full items-center justify-center text-sm text-slate-400">
                                     Nenhum objetivo com datas neste ano.
                                 </div>
                             )}
 
-                            {objetivosNoAno.map((objetivo) => (
-                                <div
-                                    key={objetivo.id}
-                                    className="absolute rounded-full border border-emerald-200 bg-emerald-100/90 px-3 py-2 text-xs text-emerald-950 shadow-sm"
-                                    style={{
-                                        left: `${objetivo.left}%`,
-                                        top: `${objetivo.lane * 42}px`,
-                                        width: `calc(${objetivo.width}% - 8px)`,
-                                    }}
-                                >
-                                    <p className="truncate font-semibold">
-                                        {objetivo.ordem}. {objetivo.titulo}
-                                    </p>
-                                    <p className="truncate text-[11px] text-emerald-800">
-                                        {objetivo.status || "Planejado"} {"•"} {formatDateForDisplay(objetivo.data_inicio)} até {formatDateForDisplay(objetivo.data_fim_prevista)}
-                                    </p>
-                                </div>
-                            ))}
+                            {objetivosNoAno.map((objetivo) => {
+                                const cores = corStatusObjetivo(objetivo.status);
+
+                                return (
+                                    <div
+                                        key={objetivo.id}
+                                        className="absolute rounded-2xl border px-3 py-2 text-xs shadow-sm"
+                                        style={{
+                                            left: `${objetivo.left}%`,
+                                            top: `${objetivo.lane * 72}px`,
+                                            width: `calc(${objetivo.width}% - 8px)`,
+                                            minWidth: "150px",
+                                            backgroundColor: cores.bg,
+                                            borderColor: cores.border,
+                                            color: cores.text,
+                                        }}
+                                        title={objetivo.titulo}
+                                    >
+                                        <p className="line-clamp-2 font-semibold">
+                                            {objetivo.ordem}. {objetivo.titulo}
+                                        </p>
+                                        <p className="mt-1 text-[11px] opacity-80">
+                                            {objetivo.status || "Planejado"} • {formatDateForDisplay(objetivo.data_inicio)} até{" "}
+                                            {formatDateForDisplay(objetivo.data_fim_prevista)}
+                                        </p>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         <div
                             className="relative border-t border-slate-200 pt-6"
-                            style={{ marginTop: `${objetivosHeight + 16}px`, minHeight: `${encontrosHeight}px` }}
+                            style={{ marginTop: `${objetivosHeight + 160}px`, minHeight: `${encontrosHeight}px` }}
                         >
                             <div className="absolute inset-x-0 top-6 h-[2px] bg-slate-200" />
 
@@ -252,16 +371,27 @@ function TimelineAnual({ objetivos, encontros }: { objetivos: Objetivo[]; encont
                     </div>
                 </div>
             </div>
+
+            <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-600">
+                <span className="rounded-full bg-white px-3 py-1 shadow-sm">Processo ativo no ano</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-800 shadow-sm">Objetivo concluído</span>
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800 shadow-sm">Objetivo em atenção</span>
+                <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-800 shadow-sm">Objetivo em transição</span>
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-800 shadow-sm">Objetivo em andamento</span>
+                <span className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-800 shadow-sm">Objetivo planejado</span>
+            </div>
         </div>
     );
 }
 
 export default function EncontrosEquipeSection({
     slug,
+    processo,
     objetivos,
     encontros,
 }: {
     slug: string;
+    processo: ProcessoResumo;
     objetivos: Objetivo[];
     encontros: Encontro[];
 }) {
@@ -272,14 +402,15 @@ export default function EncontrosEquipeSection({
 
     return (
         <section className="space-y-6">
-            <TimelineAnual objetivos={objetivos} encontros={encontrosOrdenados} />
+            <TimelineAnual processo={processo} objetivos={objetivos} encontros={encontrosOrdenados} />
 
             <div className="space-y-4 rounded-2xl bg-white p-5 shadow">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <h2 className="text-lg font-semibold text-[var(--cmv-blue)]">Encontros de Equipe</h2>
                         <p className="text-sm text-slate-500">
-                            {"Cadastre encontros em uma página própria, reabra depois para completar o relatório e exporte em PDF."}
+                            Cadastre encontros em uma página própria, reabra depois para completar o relatório
+                            e exporte em PDF.
                         </p>
                     </div>
                     <Link
@@ -322,7 +453,7 @@ export default function EncontrosEquipeSection({
                                             rel="noreferrer"
                                             className="rounded-full bg-[var(--cmv-beige)] px-3 py-1 text-xs font-medium text-[var(--cmv-brown)]"
                                         >
-                                            {"PDF do relatório"}
+                                            PDF do relatório
                                         </a>
                                     </div>
                                 </div>

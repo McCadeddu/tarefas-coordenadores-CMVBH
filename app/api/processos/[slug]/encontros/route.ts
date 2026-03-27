@@ -30,7 +30,8 @@ export async function POST(req: Request, { params }: Context) {
             return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
         }
 
-        return NextResponse.json(result, { status: 201 });
+        const encontro = result.id ? await repository.getEncontroById(slug, String(result.id)) : null;
+        return NextResponse.json({ ...result, encontro }, { status: 201 });
     } catch (error) {
         console.error("ERRO POST /api/processos/[slug]/encontros:", error);
         return NextResponse.json({ error: "Erro ao criar encontro", details: String(error) }, { status: 500 });

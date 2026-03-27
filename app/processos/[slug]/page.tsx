@@ -160,9 +160,9 @@ export default function ProcessoPage() {
             {mostrarModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
                     <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-                        <h2 className="mb-3 text-lg font-semibold">{"Confirmar exclusão"}</h2>
+                        <h2 className="mb-3 text-lg font-semibold">Confirmar exclusão</h2>
                         <p className="mb-6 text-sm text-gray-600">
-                            {"Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita."}
+                            Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.
                         </p>
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setMostrarModal(false)} className="btn btn-secondary">
@@ -203,9 +203,9 @@ export default function ProcessoPage() {
                 </header>
 
                 <section className="mb-6 grid grid-cols-1 gap-4 rounded-xl bg-white p-5 text-sm shadow md:grid-cols-2">
-                    <div><strong>{"Âmbito:"}</strong> {processo.ambito}</div>
+                    <div><strong>Âmbito:</strong> {processo.ambito}</div>
                     <div><strong>Etapa:</strong> {processo.etapa}</div>
-                    <div><strong>{"Coordenação:"}</strong> {processo.coord_atual || "-"}</div>
+                    <div><strong>Coordenação:</strong> {processo.coord_atual || "-"}</div>
                     <div><strong>Futuro:</strong> {processo.coord_futuro || "-"}</div>
                     <div><strong>Equipe:</strong> {processo.equipe || "-"}</div>
                     <div><strong>Status:</strong> {statusBadge(processo.status)}</div>
@@ -219,7 +219,7 @@ export default function ProcessoPage() {
                 <section className="mb-6 rounded-xl bg-white p-4 shadow">
                     <div className="mb-3 flex flex-wrap gap-4 text-sm text-slate-600">
                         <p><strong>Equipe:</strong> {processo.equipe || "-"}</p>
-                        <p><strong>{"Observações:"}</strong> {processo.observacoes || "-"}</p>
+                        <p><strong>Observações:</strong> {processo.observacoes || "-"}</p>
                     </div>
                     <h2 className="mb-3 font-semibold">Objetivos</h2>
                     {objetivos.length === 0 ? (
@@ -232,7 +232,7 @@ export default function ProcessoPage() {
                                         {objetivo.ordem}. {objetivo.titulo}
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        {objetivo.status || "Planejado"} {"•"} {"Início:"} {formatDateForDisplay(objetivo.data_inicio)} {"•"} Previsto: {formatDateForDisplay(objetivo.data_fim_prevista)}
+                                        {objetivo.status || "Planejado"} {"•"} Início: {formatDateForDisplay(objetivo.data_inicio)} {"•"} Previsto: {formatDateForDisplay(objetivo.data_fim_prevista)}
                                     </p>
                                 </li>
                             ))}
@@ -245,7 +245,7 @@ export default function ProcessoPage() {
                     <DiscoProcesso processo={processo} objetivos={objetivos} />
                 </section>
 
-                <EncontrosEquipeSection slug={slug} objetivos={objetivos} encontros={encontros} />
+                <EncontrosEquipeSection slug={slug} processo={processo} objetivos={objetivos} encontros={encontros} />
 
                 <section className="mt-6">
                     <h2 className="mb-3 font-semibold">Linha do tempo do processo</h2>
