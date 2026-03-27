@@ -12,6 +12,8 @@ type Context = {
 
 const FONT_REGULAR_PATH = path.join(process.cwd(), "public/fonts/inter-regular.woff2");
 const FONT_SEMIBOLD_PATH = path.join(process.cwd(), "public/fonts/inter-semibold.woff2");
+const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
+const FONT_SEMIBOLD = fs.readFileSync(FONT_SEMIBOLD_PATH);
 
 function linha(doc: PDFKit.PDFDocument, label: string, valor: string) {
     doc.font("Inter-SemiBold").text(label, { continued: true });
@@ -33,8 +35,8 @@ function textoPdf(value: unknown, fallback = "-") {
 }
 
 function registrarFontes(doc: PDFKit.PDFDocument) {
-    doc.registerFont("Inter", fs.readFileSync(FONT_REGULAR_PATH));
-    doc.registerFont("Inter-SemiBold", fs.readFileSync(FONT_SEMIBOLD_PATH));
+    doc.registerFont("Inter", FONT_REGULAR);
+    doc.registerFont("Inter-SemiBold", FONT_SEMIBOLD);
 }
 
 export async function GET(_req: Request, { params }: Context) {
@@ -48,7 +50,7 @@ export async function GET(_req: Request, { params }: Context) {
             return NextResponse.json({ error: "Encontro não encontrado" }, { status: 404 });
         }
 
-        const doc = new PDFDocument({ margin: 40, size: "A4" });
+        const doc = new PDFDocument({ margin: 40, size: "A4", font: FONT_REGULAR_PATH });
         const buffers: Buffer[] = [];
         doc.on("data", (buffer) => buffers.push(buffer));
         registrarFontes(doc);
