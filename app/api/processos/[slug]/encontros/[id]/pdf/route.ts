@@ -1,5 +1,7 @@
-﻿export const runtime = "nodejs";
+export const runtime = "nodejs";
 
+import fs from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
 import { getProcessosRepository } from "@/lib/server/processos/repository";
@@ -8,9 +10,12 @@ type Context = {
     params: Promise<{ slug: string; id: string }>;
 };
 
+const FONT_REGULAR_PATH = path.join(process.cwd(), "public/fonts/inter-regular.woff2");
+const FONT_SEMIBOLD_PATH = path.join(process.cwd(), "public/fonts/inter-semibold.woff2");
+
 function linha(doc: PDFKit.PDFDocument, label: string, valor: string) {
-    doc.font("Helvetica-Bold").text(label, { continued: true });
-    doc.font("Helvetica").text(valor);
+    doc.font("Inter-SemiBold").text(label, { continued: true });
+    doc.font("Inter").text(valor);
 }
 
 function textoPdf(value: unknown, fallback = "-") {
@@ -27,6 +32,11 @@ function textoPdf(value: unknown, fallback = "-") {
     return texto || fallback;
 }
 
+function registrarFontes(doc: PDFKit.PDFDocument) {
+    doc.registerFont("Inter", fs.readFileSync(FONT_REGULAR_PATH));
+    doc.registerFont("Inter-SemiBold", fs.readFileSync(FONT_SEMIBOLD_PATH));
+}
+
 export async function GET(_req: Request, { params }: Context) {
     try {
         const { slug, id } = await params;
@@ -41,39 +51,40 @@ export async function GET(_req: Request, { params }: Context) {
         const doc = new PDFDocument({ margin: 40, size: "A4" });
         const buffers: Buffer[] = [];
         doc.on("data", (buffer) => buffers.push(buffer));
+        registrarFontes(doc);
 
-        doc.fontSize(18).fillColor("#1E3A8A").text(textoPdf(`Relatório do encontro - ${processo.nome}`));
+        doc.font("Inter-SemiBold").fontSize(18).fillColor("#1E3A8A").text(textoPdf(`Relatório do encontro - ${processo.nome}`));
         doc.moveDown(0.5);
-        doc.fontSize(12).fillColor("#111827");
+        doc.font("Inter").fontSize(12).fillColor("#111827");
         linha(doc, "Encontro: ", textoPdf(encontro.titulo));
         linha(doc, "Data: ", textoPdf(new Date(encontro.data_encontro).toLocaleDateString("pt-BR")));
         linha(doc, "Secretário: ", textoPdf(encontro.secretario || "Não informado"));
         doc.moveDown();
 
         if (encontro.pauta_geral) {
-            doc.font("Helvetica-Bold").text("Pauta geral");
-            doc.font("Helvetica").text(textoPdf(encontro.pauta_geral));
+            doc.font("Inter-SemiBold").text("Pauta geral");
+            doc.font("Inter").text(textoPdf(encontro.pauta_geral));
             doc.moveDown();
         }
 
-        doc.font("Helvetica-Bold").text("Presenças");
+        doc.font("Inter-SemiBold").text("Presenças");
         if (encontro.presencas.length === 0) {
-            doc.font("Helvetica").text("Nenhuma presença registrada.");
+            doc.font("Inter").text("Nenhuma presença registrada.");
         } else {
             encontro.presencas.forEach((presenca) => {
-                doc.font("Helvetica").text(`- ${textoPdf(presenca.nome)} - ${presenca.presente ? "Presente" : "Ausente"}`);
+                doc.font("Inter").text(`- ${textoPdf(presenca.nome)} - ${presenca.presente ? "Presente" : "Ausente"}`);
             });
         }
         doc.moveDown();
 
         if (encontro.pautas.length === 0) {
-            doc.font("Helvetica-Bold").fontSize(13).text("Pautas");
-            doc.font("Helvetica").fontSize(11);
+            doc.font("Inter-SemiBold").fontSize(13).text("Pautas");
+            doc.font("Inter").fontSize(11);
             doc.text("Nenhuma pauta registrada.");
         } else {
             encontro.pautas.forEach((pauta) => {
-                doc.font("Helvetica-Bold").fontSize(13).text(textoPdf(`${pauta.ordem}. ${pauta.titulo}`));
-                doc.font("Helvetica").fontSize(11);
+                doc.font("Inter-SemiBold").fontSize(13).text(textoPdf(`${pauta.ordem}. ${pauta.titulo}`));
+                doc.font("Inter").fontSize(11);
                 if (pauta.relatorio) {
                     doc.text(textoPdf(pauta.relatorio));
                 } else {
@@ -82,8 +93,8 @@ export async function GET(_req: Request, { params }: Context) {
 
                 if (pauta.decisao_titulo) {
                     doc.moveDown(0.3);
-                    doc.font("Helvetica-Bold").text(textoPdf(`Decisão: ${pauta.decisao_titulo}`));
-                    doc.font("Helvetica").text(
+                    doc.font("Inter-SemiBold").text(textoPdf(`Decisão: ${pauta.decisao_titulo}`));
+                    doc.font("Inter").text(
                         textoPdf(
                             `Favoráveis: ${pauta.votos_favoraveis} | Contrários: ${pauta.votos_contrarios} | Abstenções: ${pauta.abstencoes}`
                         )
