@@ -64,14 +64,14 @@ export default function ExportarCalendarioCard() {
 
                     <a
                         href={monthlyHref}
-                        className="inline-flex items-center justify-center rounded-lg bg-[var(--cmv-blue)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                        className="inline-flex items-center justify-center rounded-lg bg-[var(--cmv-blue-dark)] px-4 py-2 text-sm font-semibold !text-white no-underline shadow-sm hover:bg-[var(--cmv-blue)] hover:no-underline"
                     >
-                        {"Exportar grade mensal"}
+                        {"Exportar m\u00eas em grade"}
                     </a>
 
                     <a
                         href={yearlyHref}
-                        className="inline-flex items-center justify-center rounded-lg border border-[var(--cmv-blue)] px-4 py-2 text-sm font-semibold text-[var(--cmv-blue)] hover:bg-slate-50"
+                        className="inline-flex items-center justify-center rounded-lg border border-[var(--cmv-blue)] px-4 py-2 text-sm font-semibold !text-[var(--cmv-blue)] no-underline hover:bg-slate-50 hover:no-underline"
                     >
                         {"Exportar ano completo"}
                     </a>
