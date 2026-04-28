@@ -69,6 +69,12 @@ export default function ExportarCalendarioCard() {
         return `/api/calendario/exportar/excel?${params.toString()}`;
     }, [sharedQuery]);
 
+    const agendaHref = useMemo(() => {
+        const params = new URLSearchParams(sharedQuery);
+        params.set("scope", "agenda");
+        return `/api/calendario/exportar/excel?${params.toString()}`;
+    }, [sharedQuery]);
+
     return (
         <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-4">
@@ -77,7 +83,7 @@ export default function ExportarCalendarioCard() {
                         {"Calend\u00e1rio da Comunidade em Excel"}
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                        {"Os respons\u00e1veis locais podem colar aqui o link publicado do Outlook. A exporta\u00e7\u00e3o mensal sai dividida em semanas de segunda-feira a domingo, e a anual continua com 12 abas mensais."}
+                        {"Os respons\u00e1veis locais podem colar aqui o link publicado do Outlook. Hoje h\u00e1 tr\u00eas sa\u00eddas: m\u00eas por semanas com horas, m\u00eas em agenda semanal sem horas e ano completo com 12 abas mensais."}
                     </p>
                 </div>
 
@@ -121,12 +127,19 @@ export default function ExportarCalendarioCard() {
                     </label>
                 </div>
 
-                <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
                     <a
                         href={monthlyHref}
                         className="inline-flex items-center justify-center rounded-lg bg-[var(--cmv-blue-dark)] px-4 py-2 text-sm font-semibold !text-white no-underline shadow-sm hover:bg-[var(--cmv-blue)] hover:no-underline"
                     >
                         {"Exportar m\u00eas por semanas"}
+                    </a>
+
+                    <a
+                        href={agendaHref}
+                        className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold !text-white no-underline shadow-sm hover:bg-emerald-700 hover:no-underline"
+                    >
+                        {"Exportar m\u00eas em agenda"}
                     </a>
 
                     <a
