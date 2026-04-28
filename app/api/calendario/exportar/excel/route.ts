@@ -70,9 +70,9 @@ function monthSheetLabel(year: number, month: number) {
 }
 
 function weekSheetLabel(index: number, start: Date, end: Date) {
-    const startLabel = `${String(start.getDate()).padStart(2, "0")}/${String(start.getMonth() + 1).padStart(2, "0")}`;
-    const endLabel = `${String(end.getDate()).padStart(2, "0")}/${String(end.getMonth() + 1).padStart(2, "0")}`;
-    return `Sem ${index} ${startLabel}-${endLabel}`;
+    const startLabel = `${String(start.getDate()).padStart(2, "0")}-${String(start.getMonth() + 1).padStart(2, "0")}`;
+    const endLabel = `${String(end.getDate()).padStart(2, "0")}-${String(end.getMonth() + 1).padStart(2, "0")}`;
+    return `Sem ${index} ${startLabel} a ${endLabel}`;
 }
 
 function formatWeekDayHeader(date: Date) {
