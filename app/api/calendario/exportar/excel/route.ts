@@ -857,6 +857,79 @@ function createWeeklyAgendaGrid(
     };
 }
 
+function cloneExcelValue<T>(value: T): T {
+    if (value == null) return value;
+    if (typeof structuredClone === "function") {
+        return structuredClone(value);
+    }
+    return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function copyWorksheetContentSequentially(
+    source: ExcelJS.Worksheet,
+    target: ExcelJS.Worksheet,
+    startRow: number
+) {
+    source.columns.forEach((column, index) => {
+        const targetColumn = target.getColumn(index + 1);
+        if (column.width) targetColumn.width = column.width;
+        targetColumn.hidden = Boolean(column.hidden);
+    });
+
+    for (let sourceRowNumber = 1; sourceRowNumber <= source.rowCount; sourceRowNumber += 1) {
+        const sourceRow = source.getRow(sourceRowNumber);
+        const targetRowNumber = startRow + sourceRowNumber - 1;
+        const targetRow = target.getRow(targetRowNumber);
+
+        targetRow.height = sourceRow.height;
+        sourceRow.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
+            const targetCell = targetRow.getCell(columnNumber);
+            targetCell.value = cloneExcelValue(cell.value);
+            targetCell.style = cloneExcelValue(cell.style);
+        });
+    }
+
+    const merges = Object.values(
+        (
+            source as unknown as {
+                _merges?: Record<string, { top: number; left: number; bottom: number; right: number }>;
+            }
+        )._merges || {}
+    );
+
+    merges.forEach((merge) => {
+        target.mergeCells(
+            startRow + merge.top - 1,
+            merge.left,
+            startRow + merge.bottom - 1,
+            merge.right
+        );
+    });
+
+    return startRow + source.rowCount;
+}
+
+function createCombinedAgendaMonthSheet(
+    workbook: ExcelJS.Workbook,
+    sourceSheets: ExcelJS.Worksheet[]
+) {
+    const combinedSheet = workbook.addWorksheet("Mês inteiro");
+    let nextStartRow = 1;
+
+    sourceSheets.forEach((sheet) => {
+        nextStartRow = copyWorksheetContentSequentially(sheet, combinedSheet, nextStartRow);
+    });
+
+    combinedSheet.pageSetup = {
+        orientation: "landscape",
+        fitToPage: false,
+        horizontalCentered: false,
+        verticalCentered: false,
+    };
+
+    return combinedSheet;
+}
+
 async function fetchCalendarContent(icsUrl: string) {
     const response = await fetch(icsUrl, { cache: "no-store" });
 
@@ -942,6 +1015,7 @@ export async function GET(request: Request) {
         } else if (scope === "agenda") {
             const weekRanges = createWeekRangesForMonth(month.year, month.month);
             const occurrences = getMonthScopeOccurrences(icsContent, month.year, month.month);
+            const agendaSheets: ExcelJS.Worksheet[] = [];
 
             weekRanges.forEach((weekRange) => {
                 const sheet = workbook.addWorksheet(
@@ -955,7 +1029,10 @@ export async function GET(request: Request) {
                     month.month,
                     calendar.label
                 );
+                agendaSheets.push(sheet);
             });
+
+            createCombinedAgendaMonthSheet(workbook, agendaSheets);
         } else {
             const weekRanges = createWeekRangesForMonth(month.year, month.month);
             const occurrences = getMonthScopeOccurrences(icsContent, month.year, month.month);
