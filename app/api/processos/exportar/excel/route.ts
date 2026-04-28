@@ -8,14 +8,14 @@ export async function GET() {
     const repository = await getProcessosRepository();
     const processos = await repository.listProcessos();
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Processos CMV BH");
+    const sheet = workbook.addWorksheet("Coordena\u00e7\u00e3o dos processos");
 
     sheet.columns = [
         { header: "Processo", key: "nome", width: 30 },
-        { header: "Ambito", key: "ambito", width: 20 },
+        { header: "\u00c2mbito", key: "ambito", width: 20 },
         { header: "Equipe", key: "equipe", width: 30 },
-        { header: "Coord. Atual", key: "coord_atual", width: 20 },
-        { header: "Futuro Coord.", key: "coord_futuro", width: 20 },
+        { header: "Coord. atual", key: "coord_atual", width: 20 },
+        { header: "Coord. futura", key: "coord_futuro", width: 20 },
         { header: "Etapa", key: "etapa", width: 20 },
         { header: "Status", key: "status", width: 15 },
     ];
@@ -34,7 +34,7 @@ export async function GET() {
     return new NextResponse(buffer, {
         headers: {
             "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Disposition": 'attachment; filename="processos-cmv-bh.xlsx"',
+            "Content-Disposition": 'attachment; filename="coordenacao-dos-processos.xlsx"',
         },
     });
 }

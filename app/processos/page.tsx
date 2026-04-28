@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import NavTopo from "../components/NavTopo";
+import { APP_NAME, LOCAL_COMMUNITY_LABEL } from "@/lib/shared/app-config";
 
 type Processo = {
     id: number;
@@ -109,10 +110,10 @@ export default function ProcessosPage() {
             {/* Cabeçalho */}
             <header className="mb-6">
                 <h1 className="text-2xl font-bold text-[var(--cmv-blue)]">
-                    Processos da Coordenação – CMV BH
+                    {APP_NAME}
                 </h1>
                 <p className="text-sm text-gray-700">
-                    Visão completa em formato de planilha única
+                    {LOCAL_COMMUNITY_LABEL} · visão completa em formato de planilha única
                 </p>
             </header>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">

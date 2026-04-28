@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentSession } from "@/lib/server/auth";
+import { APP_DESCRIPTION, APP_NAME } from "@/lib/shared/app-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Processos da Coordenacao",
-  description: "Plataforma colaborativa de processos da coordenacao",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
 export default async function RootLayout({

@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { APP_NAME, LOCAL_COMMUNITY_LABEL } from "@/lib/shared/app-config";
 
 type Processo = {
     id: number;
@@ -134,10 +135,10 @@ export default function ProjetarPage() {
                 <header className="mb-10 flex justify-between items-center">
                     <div>
                         <h1 className="text-4xl font-bold text-[var(--cmv-blue)]">
-                            Processos da Coordenação
+                            {APP_NAME}
                         </h1>
                         <p className="text-lg text-gray-700">
-                            CMV – Belo Horizonte · {new Date().toLocaleDateString("pt-BR")}
+                            {LOCAL_COMMUNITY_LABEL} · {new Date().toLocaleDateString("pt-BR")}
                         </p>
                     </div>
 

@@ -4,6 +4,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ExportarCalendarioCard from "./components/ExportarCalendarioCard";
+import { APP_NAME, LOCAL_COMMUNITY_LABEL } from "@/lib/shared/app-config";
 
 type Processo = {
     id: number;
@@ -184,11 +186,11 @@ export default function HomePage() {
                         {/* Título */}
                         <div>
                             <h1 className="text-xl font-semibold text-[var(--cmv-blue)]">
-                                Processos da Coordenação
+                                {APP_NAME}
                             </h1>
 
                             <p className="text-xs text-gray-500">
-                                CMV – Belo Horizonte
+                                {LOCAL_COMMUNITY_LABEL}
                             </p>
                         </div>
                     </div>
@@ -213,7 +215,10 @@ export default function HomePage() {
                             </Link>
 
                         </div>
-                    </div>                </header>
+                    </div>
+                </header>
+
+                <ExportarCalendarioCard />
 
             {/* RESUMO */}
                 <section className="mb-10 bg-white rounded shadow p-4 overflow-x-auto">
