@@ -14,6 +14,12 @@ type ParsedMonth = {
     label: string;
 };
 
+type WeekRange = {
+    start: Date;
+    end: Date;
+    index: number;
+};
+
 function currentMonthValue() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -31,6 +37,24 @@ function parseMonth(value: string | null): ParsedMonth | null {
     return { year, month, label: safeValue };
 }
 
+function addDays(date: Date, amount: number) {
+    const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    copy.setDate(copy.getDate() + amount);
+    return copy;
+}
+
+function startOfWeekMonday(date: Date) {
+    const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = copy.getDay();
+    const offset = day === 0 ? -6 : 1 - day;
+    copy.setDate(copy.getDate() + offset);
+    return copy;
+}
+
+function endOfWeekSunday(date: Date) {
+    return addDays(startOfWeekMonday(date), 6);
+}
+
 function formatMonthLabel(year: number, month: number) {
     return new Date(year, month - 1, 1).toLocaleDateString("pt-BR", {
         month: "long",
@@ -45,10 +69,22 @@ function monthSheetLabel(year: number, month: number) {
     return `${String(month).padStart(2, "0")} ${shortMonth.replace(".", "")}`;
 }
 
-function formatDayHeader(year: number, month: number, day: number) {
-    const date = new Date(year, month - 1, day);
-    const weekday = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
-    return `${String(day).padStart(2, "0")} ${weekday}`;
+function weekSheetLabel(index: number, start: Date, end: Date) {
+    const startLabel = `${String(start.getDate()).padStart(2, "0")}/${String(start.getMonth() + 1).padStart(2, "0")}`;
+    const endLabel = `${String(end.getDate()).padStart(2, "0")}/${String(end.getMonth() + 1).padStart(2, "0")}`;
+    return `Sem ${index} ${startLabel}-${endLabel}`;
+}
+
+function formatWeekDayHeader(date: Date) {
+    const weekday = date
+        .toLocaleDateString("pt-BR", { weekday: "short" })
+        .replace(".", "")
+        .replace(/^\w/, (char) => char.toUpperCase());
+    return `${weekday} ${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatWeekRangeLabel(start: Date, end: Date) {
+    return `${start.toLocaleDateString("pt-BR")} a ${end.toLocaleDateString("pt-BR")}`;
 }
 
 function excelColumnName(index: number) {
@@ -64,7 +100,7 @@ function excelColumnName(index: number) {
     return columnName;
 }
 
-function parseDateParts(value: string) {
+function parseOccurrenceDate(value: string) {
     const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (!match) return null;
 
@@ -73,6 +109,14 @@ function parseDateParts(value: string) {
         month: Number(match[2]),
         year: Number(match[3]),
     };
+}
+
+function isoDateFromParts(parts: { year: number; month: number; day: number }) {
+    return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+function isoDateFromDate(date: Date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function parseTimeToMinutes(value: string) {
@@ -122,6 +166,49 @@ function addEntry(map: Map<string, string[]>, key: string, value: string) {
     map.set(key, current);
 }
 
+function isSameTargetMonth(date: Date, year: number, month: number) {
+    return date.getFullYear() === year && date.getMonth() + 1 === month;
+}
+
+function createWeekRangesForMonth(year: number, month: number) {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const firstWeekStart = startOfWeekMonday(firstDay);
+    const lastWeekEnd = endOfWeekSunday(lastDay);
+    const ranges: WeekRange[] = [];
+
+    let cursor = new Date(firstWeekStart.getTime());
+    let index = 1;
+
+    while (cursor <= lastWeekEnd) {
+        const weekStart = new Date(cursor.getTime());
+        const weekEnd = addDays(weekStart, 6);
+        ranges.push({ start: weekStart, end: weekEnd, index });
+        cursor = addDays(cursor, 7);
+        index += 1;
+    }
+
+    return ranges;
+}
+
+function dedupeOccurrences(occurrences: CalendarOccurrence[]) {
+    const map = new Map<string, CalendarOccurrence>();
+
+    occurrences.forEach((occurrence) => {
+        const key = [
+            occurrence.summary,
+            occurrence.location,
+            occurrence.startDate,
+            occurrence.startTime,
+            occurrence.endDate,
+            occurrence.endTime,
+        ].join("|");
+        map.set(key, occurrence);
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.startSortKey.localeCompare(b.startSortKey));
+}
+
 function createMonthlyGrid(
     sheet: ExcelJS.Worksheet,
     occurrences: CalendarOccurrence[],
@@ -134,7 +221,7 @@ function createMonthlyGrid(
     const timedByDayHour = new Map<string, string[]>();
 
     occurrences.forEach((occurrence) => {
-        const parts = parseDateParts(occurrence.startDate);
+        const parts = parseOccurrenceDate(occurrence.startDate);
         if (!parts || parts.month !== month || parts.year !== year) return;
 
         if (occurrence.allDay) {
@@ -191,16 +278,16 @@ function createMonthlyGrid(
         const jsDate = new Date(year, month - 1, day);
         const isWeekend = jsDate.getDay() === 0 || jsDate.getDay() === 6;
 
-        cell.value = formatDayHeader(year, month, day);
+        cell.value = formatWeekDayHeader(jsDate);
         cell.font = { bold: true, color: { argb: "FFFFFF" } };
         cell.fill = {
             type: "pattern",
             pattern: "solid",
             fgColor: { argb: isWeekend ? "64748B" : "4BBBC8" },
         };
-        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     }
-    headerRow.height = 24;
+    headerRow.height = 28;
 
     for (let offset = 0; offset < maxAllDayRows; offset += 1) {
         const rowNumber = 5 + offset;
@@ -285,14 +372,214 @@ function createMonthlyGrid(
     };
 }
 
+function createWeeklyGrid(
+    sheet: ExcelJS.Worksheet,
+    occurrences: CalendarOccurrence[],
+    weekRange: WeekRange,
+    targetYear: number,
+    targetMonth: number,
+    calendarLabel: string
+) {
+    const days = Array.from({ length: 7 }, (_, index) => addDays(weekRange.start, index));
+    const dayKeys = days.map((day) => isoDateFromDate(day));
+    const allDayByDate = new Map<string, string[]>();
+    const timedByDateHour = new Map<string, string[]>();
+    const totalColumns = 8;
+    const lastColumn = excelColumnName(totalColumns);
+
+    occurrences.forEach((occurrence) => {
+        const parts = parseOccurrenceDate(occurrence.startDate);
+        if (!parts) return;
+
+        const dateKey = isoDateFromParts(parts);
+        if (!dayKeys.includes(dateKey)) return;
+
+        if (occurrence.allDay) {
+            addEntry(allDayByDate, dateKey, buildAllDayLabel(occurrence));
+            return;
+        }
+
+        const label = buildTimedLabel(occurrence);
+        listTouchedHours(occurrence).forEach((hour) => {
+            addEntry(timedByDateHour, `${dateKey}-${hour}`, label);
+        });
+    });
+
+    const maxAllDayRows = Math.max(1, ...Array.from(allDayByDate.values()).map((items) => items.length));
+
+    sheet.columns = [
+        { key: "time", width: 11 },
+        ...Array.from({ length: 7 }, () => ({ width: 24 })),
+    ];
+
+    sheet.mergeCells(`A1:${lastColumn}1`);
+    sheet.getCell("A1").value = `Calend\u00e1rio semanal de ${calendarLabel}`;
+    sheet.getCell("A1").font = { bold: true, size: 16, color: { argb: "FFFFFF" } };
+    sheet.getCell("A1").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "1E3A8A" },
+    };
+    sheet.getCell("A1").alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(1).height = 24;
+
+    sheet.mergeCells(`A2:${lastColumn}2`);
+    sheet.getCell("A2").value =
+        `Semana ${weekRange.index} \u00b7 ${formatWeekRangeLabel(weekRange.start, weekRange.end)} \u00b7 segunda-feira a domingo`;
+    sheet.getCell("A2").font = { italic: true, color: { argb: "475569" } };
+    sheet.getCell("A2").alignment = { horizontal: "left", vertical: "middle" };
+
+    const headerRow = sheet.getRow(4);
+    headerRow.getCell(1).value = "Hora";
+    headerRow.getCell(1).font = { bold: true, color: { argb: "FFFFFF" } };
+    headerRow.getCell(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "0F172A" },
+    };
+
+    days.forEach((day, index) => {
+        const cell = headerRow.getCell(index + 2);
+        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+        const insideTargetMonth = isSameTargetMonth(day, targetYear, targetMonth);
+
+        cell.value = formatWeekDayHeader(day);
+        cell.font = {
+            bold: true,
+            color: { argb: "FFFFFF" },
+            italic: !insideTargetMonth,
+        };
+        cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+                argb: insideTargetMonth ? (isWeekend ? "64748B" : "4BBBC8") : "94A3B8",
+            },
+        };
+        cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    });
+    headerRow.height = 30;
+
+    for (let offset = 0; offset < maxAllDayRows; offset += 1) {
+        const rowNumber = 5 + offset;
+        const row = sheet.getRow(rowNumber);
+        row.height = 40;
+
+        const labelCell = row.getCell(1);
+        labelCell.value = offset === 0 ? "Dia inteiro" : "";
+        labelCell.font = { bold: offset === 0, color: { argb: "334155" } };
+        labelCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "E2E8F0" },
+        };
+        labelCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+
+        days.forEach((day, index) => {
+            const cell = row.getCell(index + 2);
+            const key = isoDateFromDate(day);
+            const insideTargetMonth = isSameTargetMonth(day, targetYear, targetMonth);
+            cell.value = allDayByDate.get(key)?.[offset] || "";
+            cell.alignment = { vertical: "top", wrapText: true };
+            cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: insideTargetMonth ? "F8FAFC" : "E5E7EB" },
+            };
+            cell.border = {
+                top: { style: "thin", color: { argb: "CBD5E1" } },
+                left: { style: "thin", color: { argb: "CBD5E1" } },
+                bottom: { style: "thin", color: { argb: "CBD5E1" } },
+                right: { style: "thin", color: { argb: "CBD5E1" } },
+            };
+        });
+    }
+
+    const firstHourRow = 5 + maxAllDayRows;
+    for (let hour = 0; hour < 24; hour += 1) {
+        const rowNumber = firstHourRow + hour;
+        const row = sheet.getRow(rowNumber);
+        row.height = 50;
+
+        const hourCell = row.getCell(1);
+        hourCell.value = `${String(hour).padStart(2, "0")}:00`;
+        hourCell.font = { bold: true, color: { argb: "334155" } };
+        hourCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "E2E8F0" },
+        };
+        hourCell.alignment = { horizontal: "center", vertical: "middle" };
+        hourCell.border = {
+            top: { style: "thin", color: { argb: "CBD5E1" } },
+            left: { style: "thin", color: { argb: "CBD5E1" } },
+            bottom: { style: "thin", color: { argb: "CBD5E1" } },
+            right: { style: "thin", color: { argb: "CBD5E1" } },
+        };
+
+        days.forEach((day, index) => {
+            const cell = row.getCell(index + 2);
+            const key = isoDateFromDate(day);
+            const insideTargetMonth = isSameTargetMonth(day, targetYear, targetMonth);
+            const items = timedByDateHour.get(`${key}-${hour}`) || [];
+            cell.value = items.join("\n\n");
+            cell.alignment = { vertical: "top", wrapText: true };
+            cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: {
+                    argb: insideTargetMonth
+                        ? hour % 2 === 0
+                            ? "FFFFFF"
+                            : "F8FAFC"
+                        : "E5E7EB",
+                },
+            };
+            cell.border = {
+                top: { style: "thin", color: { argb: "CBD5E1" } },
+                left: { style: "thin", color: { argb: "CBD5E1" } },
+                bottom: { style: "thin", color: { argb: "CBD5E1" } },
+                right: { style: "thin", color: { argb: "CBD5E1" } },
+            };
+        });
+    }
+
+    sheet.views = [{ state: "frozen", xSplit: 1, ySplit: 4 }];
+    sheet.pageSetup = {
+        orientation: "landscape",
+        fitToPage: false,
+        horizontalCentered: false,
+        verticalCentered: false,
+    };
+}
+
 async function fetchCalendarContent(icsUrl: string) {
     const response = await fetch(icsUrl, { cache: "no-store" });
 
     if (!response.ok) {
-        throw new Error(`Falha ao acessar o calend\u00e1rio publicado: ${response.status} ${response.statusText}`);
+        throw new Error(
+            `Falha ao acessar o calend\u00e1rio publicado: ${response.status} ${response.statusText}`
+        );
     }
 
     return response.text();
+}
+
+function getMonthScopeOccurrences(icsContent: string, year: number, month: number) {
+    const currentMonth = extractMonthlyOccurrences(icsContent, { year, month });
+    const previousMonthDate = new Date(year, month - 2, 1);
+    const nextMonthDate = new Date(year, month, 1);
+
+    const previousMonth = extractMonthlyOccurrences(icsContent, {
+        year: previousMonthDate.getFullYear(),
+        month: previousMonthDate.getMonth() + 1,
+    });
+    const nextMonth = extractMonthlyOccurrences(icsContent, {
+        year: nextMonthDate.getFullYear(),
+        month: nextMonthDate.getMonth() + 1,
+    });
+
+    return dedupeOccurrences([...previousMonth, ...currentMonth, ...nextMonth]);
 }
 
 export async function GET(request: Request) {
@@ -331,23 +618,34 @@ export async function GET(request: Request) {
                 createMonthlyGrid(sheet, occurrences, month.year, monthNumber, calendar.label);
             }
         } else {
-            const occurrences = extractMonthlyOccurrences(icsContent, {
-                year: month.year,
-                month: month.month,
+            const weekRanges = createWeekRangesForMonth(month.year, month.month);
+            const occurrences = getMonthScopeOccurrences(icsContent, month.year, month.month);
+
+            weekRanges.forEach((weekRange) => {
+                const sheet = workbook.addWorksheet(
+                    weekSheetLabel(weekRange.index, weekRange.start, weekRange.end)
+                );
+                createWeeklyGrid(
+                    sheet,
+                    occurrences,
+                    weekRange,
+                    month.year,
+                    month.month,
+                    calendar.label
+                );
             });
-            const sheet = workbook.addWorksheet(`${calendar.label} ${month.label}`);
-            createMonthlyGrid(sheet, occurrences, month.year, month.month, calendar.label);
         }
 
         const buffer = await workbook.xlsx.writeBuffer();
         const fileName =
             scope === "year"
                 ? `calendario-anual-${calendar.id}-${month.year}.xlsx`
-                : `calendario-grade-${calendar.id}-${month.label}.xlsx`;
+                : `calendario-semanal-${calendar.id}-${month.label}.xlsx`;
 
         return new NextResponse(buffer, {
             headers: {
-                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "Content-Type":
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "Content-Disposition": `attachment; filename="${fileName}"`,
             },
         });

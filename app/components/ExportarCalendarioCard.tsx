@@ -32,7 +32,7 @@ export default function ExportarCalendarioCard() {
                         {"Calend\u00e1rio da Comunidade em Excel"}
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                        {"Escolha a comunidade e o m\u00eas de refer\u00eancia. Voc\u00ea pode exportar uma grade mensal ou um arquivo anual com 12 abas."}
+                        {"Escolha a comunidade e o m\u00eas de refer\u00eancia. A exporta\u00e7\u00e3o mensal sai dividida em semanas de segunda-feira a domingo, e a anual continua com 12 abas mensais."}
                     </p>
                 </div>
 
@@ -66,7 +66,7 @@ export default function ExportarCalendarioCard() {
                         href={monthlyHref}
                         className="inline-flex items-center justify-center rounded-lg bg-[var(--cmv-blue-dark)] px-4 py-2 text-sm font-semibold !text-white no-underline shadow-sm hover:bg-[var(--cmv-blue)] hover:no-underline"
                     >
-                        {"Exportar m\u00eas em grade"}
+                        {"Exportar m\u00eas por semanas"}
                     </a>
 
                     <a
@@ -78,7 +78,7 @@ export default function ExportarCalendarioCard() {
                 </div>
 
                 <p className="text-xs text-slate-500">
-                    {"A exporta\u00e7\u00e3o anual usa o ano do m\u00eas selecionado e cria uma aba para cada m\u00eas."}
+                    {"A exporta\u00e7\u00e3o anual usa o ano do m\u00eas selecionado e cria uma aba para cada m\u00eas. A mensal cria uma aba para cada semana do m\u00eas."}
                 </p>
             </div>
         </section>
