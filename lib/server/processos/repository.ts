@@ -1,5 +1,4 @@
 import type { ProcessosRepository } from "./types";
-import { SqliteProcessosRepository } from "./repository-sqlite";
 
 function normalizeProvider(value?: string) {
     return (value || "").trim().replace(/^"|"$/g, "").toLowerCase();
@@ -14,5 +13,6 @@ export async function getProcessosRepository(): Promise<ProcessosRepository> {
         return new PrismaProcessosRepository();
     }
 
+    const { SqliteProcessosRepository } = await import("./repository-sqlite");
     return new SqliteProcessosRepository();
 }
