@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import { extractMonthlyOccurrences, type CalendarOccurrence } from "@/lib/server/calendar/ics";
 import {
     getCommunityCalendarConfig,
+    resolveCalendarSourceUrl,
     resolvePublishedCalendarIcsUrl,
 } from "@/lib/server/community-calendars";
 
@@ -588,6 +589,7 @@ export async function GET(request: Request) {
         const calendarId = searchParams.get("calendar") || "cmv-bh";
         const month = parseMonth(searchParams.get("month"));
         const scope = searchParams.get("scope") === "year" ? "year" : "month";
+        const sourceUrlOverride = searchParams.get("sourceUrl");
 
         if (!month) {
             return NextResponse.json(
@@ -604,7 +606,23 @@ export async function GET(request: Request) {
             );
         }
 
-        const icsUrl = resolvePublishedCalendarIcsUrl(calendar.sourceUrl);
+        let sourceUrl = "";
+        try {
+            sourceUrl = resolveCalendarSourceUrl(calendarId, sourceUrlOverride);
+        } catch (error) {
+            if (error instanceof Error && error.message === "LINK_CALENDARIO_INVALIDO") {
+                return NextResponse.json(
+                    {
+                        error: "Link do calend\u00e1rio inv\u00e1lido.",
+                        details: "Use um link publicado do Outlook em https://outlook.office365.com/...",
+                    },
+                    { status: 400 }
+                );
+            }
+            throw error;
+        }
+
+        const icsUrl = resolvePublishedCalendarIcsUrl(sourceUrl);
         const icsContent = await fetchCalendarContent(icsUrl);
         const workbook = new ExcelJS.Workbook();
 
